@@ -95,7 +95,7 @@ class Tournament:
     def play_match(self, player1, player2, division, mugen):
         self.__update_tournament_state("Fight", "Current battle: " + player1["Name"] + " VS. " + player2["Name"])
         while(1):
-            if !mugen.are_you_still_there():
+            if not mugen.are_you_still_there():
                 mugen.reset()
             winner = -1
             print("Scan")
