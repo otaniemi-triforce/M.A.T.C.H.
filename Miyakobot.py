@@ -247,7 +247,7 @@ async def on_message(message):
                     game = discord.Game(name="Registration, " + str(divisions) + " divisions -- Registered: " + str(len(players)))
                     await client.change_presence(activity=game)
                     # Write response
-                    response = "Registration is now open for tournament with " + str(divisions)
+                    response = "Registration is now open for tournament with " + str(divisions) + " divisions."
                     response += "\nCharacter ID's 0-" + str(MAX_CHAR_ID) + " are accepted."
                 except ValueError:
                     # Typo in message
