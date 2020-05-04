@@ -93,7 +93,9 @@ class Tournament:
     # Play match function currently simulates a battle for the tournament system
     # This should be implemented by game control side of things.
     def play_match(self, player1, player2, division, mugen):
-        self.__update_tournament_state("Fight", "Current battle: " + player1["Name"] + " VS. " + player2["Name"])
+        statement = "Current battle: " + player1["Name"] + "("+ player1["Characters"][division] + ")" 
+        statement += " VS. " + player2["Name"] + "("+ player2["Characters"][division] + ")"
+        self.__update_tournament_state("Fight", statement)
         while(1):
             if not mugen.are_you_still_there():
                 mugen.reset()
