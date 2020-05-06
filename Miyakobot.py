@@ -1,3 +1,4 @@
+
 # tronbot.py
 import os
 import discord
@@ -5,41 +6,50 @@ import asyncio, time
 import threading
 import tournament as tournament
 import mugenoperator as mo
+import random
 
 # Discord token and guild(Channel) name
 TOKEN=""
 GUILD="Triforce"
 
+
 # Set this to prevent multiple registrations with same name
 NO_DUPLICATES = 0
 
-
-# MUGENOPERATOR
+# Mugenoperator for running the matches
 mugen = mo.MugenOperator()
 
 # Greatest selectable chara id.
 MAX_CHAR_ID = mugen.get_max_ID()
 
-
-
-START = 45
-WARN1 = 20
-WARN2 = 10
-
+# Status codes
 DISABLED = 0
 REGISTRATION = 1
 RUNNING = 2
 ERROR = -1
 
+
+# Number of time the same offset will be used
+OFFSET_COUNT = 5
+offset_counter = OFFSET_COUNT
+offset = 0
+
+# Tournament state
 reserved_characters = []
 players = []
 old_players = []
 div = 0
-old_div = 0
+current_div = 1
 
+# Important pics...because important
+pics = ["Miya-results1.png", "Miya-results2.png", "Miya-results2.png"]
 
 #Timers for the match start
 timers = False
+# Initial time and warning intervals
+START = 15
+WARN1 = 5
+WARN2 = 5
 
 def start_timers():
     global timers
@@ -58,26 +68,29 @@ async def minute_warning(i, channel):
 
 
 
-# PLAYER data
-# Contains: User name, Achieved rank in each division, Character id's for Each division
-# player == {"Name" : "Steve", "Rank" : [0,0,0], "Characters" : [1,2,3]}
-# players == list of player entities in the game
 
 
 # Create new tournament, store values of previous tournament (for no reason at this point)
 def new_tournament(divisions):
     global players
-    global old_players
     global div
-    global old_div
     global reserved_characters
+    global offset
+    global offset_counter 
+    global current_div
+    
     assert(divisions > 0)
-    if players:
-        old_players = list(players)
-        old_div = div
+    current_div = 1
     players = []
     div = divisions
     reserved_characters = []
+    if offset_counter >= OFFSET_COUNT:
+        offset = random.randint(0, MAX_CHAR_ID)
+        offset_counter = 0
+        return True
+    else:
+        offset_counter += 1
+        return False
 
 # Register characters
 def register_chars(chars):
@@ -95,11 +108,25 @@ def add_player(player):
     return True
 
 # Create new player with characters chars, raise IndexError if any character is reserved 
+
+# PLAYER data
+# Contains: User name, Achieved rank in each division, Character id's for Each division
+# player == {"Name" : "Example", "Rank" : [0,0,0], "Characters" : [1,2,3]}
+
 def new_player(name, chars):
     if not len(chars) == div:
         raise IndexError('Character mismatch')
         return {}
     return {"Name":name, "Rank": [0 for i in range(div)], "Characters": chars}
+
+# Apply current offset
+def offset_char(value, add):
+    if add:
+        tmp = value + offset
+    else:
+        tmp = value - offset
+    return tmp % (MAX_CHAR_ID + 1)
+
 
 ###############################
 # DISCORD STUFF FROM HERE ON ##
@@ -132,11 +159,28 @@ def get_channel():
     return discord.utils.get(guild.text_channels, name='mugen-mayhem')
 
 # Update the presence to match tournament status
+
+#statement = "Current battle: " + player1["Name"] + "("+ str(player1["Characters"][division]) + ")" 
+#        statement += " VS. " + player2["Name"] + "("+ str(player2["Characters"][division]) + ")"
+
+
+
 async def update_presence(tour):
     if tour.is_running():
-        state_div = tour.get_state("Div")
+        global current_div
         state_round = tour.get_state("Round")
-        state_fight = tour.get_state("Fight")
+        state_div = tour.get_state("Div")
+        print("Division: " + str(state_div) + " (" + str(current_div) + ") : " + " round: " + str(state_round))
+        if state_div == current_div:
+            print("Division complete!")
+            await get_channel().send(tour.rankings(players, current_div - 1))
+            current_div = state_div + 1
+        fight = tour.get_state("Fight")
+        if fight:
+            state_fight =  fight[0][0] + " (" + str(offset_char(fight[0][1], False)) + ") VS " 
+            state_fight += fight[1][0] + " (" + str(offset_char(fight[1][1], False)) + ")"
+        else:
+            state_fight = "-"
         new_presence = "Running tournament. Match: " + state_fight + " -- Division: " + str(state_div + 1) + " Round : " + str(state_round)
         if new_presence != get_presence():
             game = discord.Game(name=new_presence)
@@ -146,6 +190,13 @@ async def update_presence(tour):
 # Client on_ready operates as watchdog for the system and executes tournaments
 # and timers. This runs in independent thread, so what happens here does not block
 # message functions.
+async def send_pic(pic, message): 
+    try:
+        await get_channel().send(file=discord.File(pic), content=message)
+    except FileNotFoundError:
+        print(pic + " is missing, not critical but plz fix")
+
+
 @client.event
 async def on_ready():
     guild = discord.utils.get(client.guilds, name=GUILD)
@@ -166,7 +217,7 @@ async def on_ready():
     # Join specified channel and send greeting
     channel = discord.utils.get(guild.text_channels, name='mugen-mayhem')
     if channel:
-        message = "Miyako here~... "
+        message = "Miyako here-... "
         await channel.send(message)
         message = "Dan-kun wanted me to run some matches, so..."
         time.sleep(2)
@@ -194,7 +245,7 @@ async def on_ready():
             reset_timers()
             
             # Kickoff tournament
-            await channel.send(file=discord.File('miya-happy-sm.png'), content="Tournament started, finally we get the good bit")
+            await send_pic("miya-happy-sm.png", "Tournament started, finally we get the good bit")
             
             # Create new tournament thread
             tour_t = threading.Thread(target=tour.run_tournament , args=(players, div, mugen))
@@ -210,6 +261,8 @@ async def on_ready():
                 # Check status
                 await update_presence(tour)
                 await asyncio.sleep(5)
+            
+            await send_pic(pics[random.randint(0,len(pics) - 1)], "Ah that was nice.")
             await channel.send(tour.final_rankings(players, div))
             idle = discord.Activity(type=discord.ActivityType.unknown, name="Inactive")
             await client.change_presence(activity=idle)
@@ -242,13 +295,17 @@ async def on_message(message):
                 try:
                     # Parse
                     divisions = int(payload.split(":")[1:][0])
-                    new_tournament(divisions)
+                    offset_change = new_tournament(divisions)
                     # Update presence
                     game = discord.Game(name="Registration, " + str(divisions) + " divisions -- Registered: " + str(len(players)))
                     await client.change_presence(activity=game)
                     # Write response
-                    response = "Registration is now open for tournament with " + str(divisions) + " divisions."
+                    response = "Registration is now open for tournament with " + str(divisions) + " divisions.\n"
+                    if offset_change:
+                        response += "New character offset was created.\n"
+                    response += "Current character offset will be used for " + str(OFFSET_COUNT - offset_counter) + " matches.\n"        
                     response += "\nCharacter ID's 0-" + str(MAX_CHAR_ID) + " are accepted."
+                    
                 except ValueError:
                     # Typo in message
                     response = "Correct syntax is 'new tournament: <divisions>', dummy"
@@ -266,10 +323,12 @@ async def on_message(message):
                     # Parse
                     data = payload.split(":")[1:]
                     chars = []
-                    # Expect the worst
-                    response = "Registration failed, character already taken: "
+                    badchars = []
+                    realchars = []
+                    
                     # Check what registration contained
                     for i in data[0].split(",")[0:]:
+                        value = offset_char(int(i), True)
                         if int(i) < 0:
                             chars = []
                             response = "There ain't no contestants with negative numbers, sheesh..."
@@ -278,11 +337,12 @@ async def on_message(message):
                             chars = []
                             response = "Highest selectable id is " + str(MAX_CHAR_ID)
                             break
-                        if reserved_characters.count(int(i)):
+                        if reserved_characters.count(value):
                             chars= []
-                            response += i + " " 
+                            badchars.append(int(i)) 
                         else:
-                            chars.append(int(i))
+                            chars.append(value)
+                            realchars.append(int(i))
                     # If everything is fine so far, do final checks and then create new player
                     if chars and add_player(new_player(message.author.name, chars)):
                         register_chars(chars)
@@ -292,7 +352,10 @@ async def on_message(message):
                         # Enough players for tournament, start counters
                         if len(players) > 1:
                             start_timers()
-                        response = message.author.name + " registered with characters: " + ','.join(str(i) for i in chars)  
+                        response = message.author.name + " registered with characters: " + ','.join(str(i) for i in realchars)
+                    elif badchars:
+                        # Output the badchars so the user can learn from this.
+                        response = "Registration failed, following characters already taken: " + ','.join(str(i) for i in badchars)
                 # Responses for bad values        
                 except ValueError:
                     response = "Correct syntax is 'register: <character id>, <character 2id>,...', dummy"
