@@ -13,7 +13,7 @@ POW2 = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
 class Tournament:
     def __init__(self):
         self.running = 0
-        self.tournament_state = {"Div": 0, "Round": 1, "Match": 1, "Fight": "", "Order" : []}
+        self.tournament_state = {"Div": 0, "Round": 1, "Match": 1, "Fight": [], "Order" : []}
 
     def is_running(self):
         return self.running
@@ -35,9 +35,11 @@ class Tournament:
 
     # Prints out the ranking of the given division
     def rankings(self, players, division):
+        print("Rankings being generated for: " + str(division + 1))
         count = 12
         position = 1
-        message += ("Division " + str(division) + "rankings\n")
+        message = ("Division " + str(division + 1) + " finished!\n")
+        message += ("Rankings:\n---------\n")
         while(count):
             for player in players:
                 if player["Rank"][division] == count:
@@ -57,7 +59,7 @@ class Tournament:
             tmp += 1
         count = 12
         position = 1
-        message = "FINAL STANDINGS:\n"
+        message = "FINAL STANDINGS:\n----------------\n"
         while(count):
             for i in range(len(players)):
                 if score[i] == count:
@@ -83,27 +85,22 @@ class Tournament:
         self.__update_tournament_state("Order", [])
         for i in range(divisions):
             # Update state
-            self.__update_tournament_state("div", i)
+            self.__update_tournament_state("Div", i)
             # Play division i
             self.tournament(players, i, mugen)
-        self.__update_tournament_state("div", divisions + 1)
+                
+        self.__update_tournament_state("Div", divisions + 1)
         self.running = 0
         print ("TOURNAMENT THREAD FINISHED")
         
     # Play match function currently simulates a battle for the tournament system
     # This should be implemented by game control side of things.
     def play_match(self, player1, player2, division, mugen):
-        statement = "Current battle: " + player1["Name"] + "("+ str(player1["Characters"][division]) + ")" 
-        statement += " VS. " + player2["Name"] + "("+ str(player2["Characters"][division]) + ")"
-        self.__update_tournament_state("Fight", statement)
+        self.__update_tournament_state("Fight", [[player1["Name"], player1["Characters"][division]],[player2["Name"], player2["Characters"][division]]])
         while(1):
-            if not mugen.are_you_still_there():
-                mugen.reset()
             winner = -1
-            print("Scan")
             mugen.scan()
             time.sleep(0.5)
-            print("Scan")
             mugen.scan()
             time.sleep(0.5)
             print("MENU CHECK")
@@ -113,18 +110,19 @@ class Tournament:
             if mugen.get_state() == mo.SELECT_STATE:
                 while mugen.get_queue_size(mo.PLAYER1) != 0 and mugen.get_queue_size(mo.PLAYER2) != 0:
                     mugen.scan()
-                print("Insert chars")
+                print("TOURNAMENT: Insert chars")
+                print("CHAR ID1: " + str(player1["Characters"][division]))
+                print("CHAR ID2: " + str(player2["Characters"][division]))
                 mugen.add_character(player1["Characters"][division], mo.PLAYER1)
                 mugen.add_character(player2["Characters"][division], mo.PLAYER2)
                 while(mugen.are_you_still_there()):
-                    print("WIN CHECK")
                     winner = mugen.scan()
                     if(winner == -1):
                         pass
                     else:
                         break
                     time.sleep(2)
-                print("OUT")
+                print("TOURNAMENT: Match finished")
                 if (mugen.are_you_still_there()):
                     break
                 else:
