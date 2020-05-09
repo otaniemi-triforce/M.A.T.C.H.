@@ -38,7 +38,8 @@ class Tournament:
         print("Rankings being generated for: " + str(division + 1))
         count = 12
         position = 1
-        message = ("Division " + str(division + 1) + " finished!\n")
+        message = ("---------\n")
+        message += ("Division " + str(division + 1) + " finished!\n")
         message += ("Rankings:\n---------\n")
         while(count):
             for player in players:
@@ -57,7 +58,7 @@ class Tournament:
             for i in range(div):
                 score[tmp] += player["Rank"][i]
             tmp += 1
-        count = 12
+        count = 10 * div
         position = 1
         message = "FINAL STANDINGS:\n----------------\n"
         while(count):
@@ -66,7 +67,7 @@ class Tournament:
                     rank = [str(i) for i in players[i]["Rank"]]
                     message += str(position) + '. ' + players[i]["Name"] + ' - Total score: ' + str(score[i]) + "  Division scores: " + ','.join(rank) + "\n"
                     position += 1
-            count -= 1    
+            count -= 1
         return message
 
     def player_order(self, order):
@@ -103,31 +104,43 @@ class Tournament:
             time.sleep(0.5)
             mugen.scan()
             time.sleep(0.5)
-            print("MENU CHECK")
-            if mugen.get_state() == mo.MENU_STATE:
-                mugen.scan()
-            print("SELECT CHECK")
-            if mugen.get_state() == mo.SELECT_STATE:
-                while mugen.get_queue_size(mo.PLAYER1) != 0 and mugen.get_queue_size(mo.PLAYER2) != 0:
+            print("DEAD OR ALIVE")
+            if mugen.get_state() == mo.DEAD_STATE:
+                print("Tournament: Mugen was dead from the get go, waiting for reset")
+                mugen.reset(True)
+                time.sleep(60)
+            if mugen.get_state() == mo.LOADING_STATE:
+                print("...mugen is still loading")
+                time.sleep(30)
+            else:
+                print("MENU CHECK")
+                if mugen.get_state() == mo.MENU_STATE:
                     mugen.scan()
-                print("TOURNAMENT: Insert chars")
-                print("CHAR ID1: " + str(player1["Characters"][division]))
-                print("CHAR ID2: " + str(player2["Characters"][division]))
-                mugen.add_character(player1["Characters"][division], mo.PLAYER1)
-                mugen.add_character(player2["Characters"][division], mo.PLAYER2)
-                while(mugen.are_you_still_there()):
-                    winner = mugen.scan()
-                    if(winner == -1):
-                        pass
-                    else:
+                print("SELECT CHECK")
+                if mugen.get_state() == mo.SELECT_STATE:
+                    while mugen.get_queue_size(mo.PLAYER1) != 0 and mugen.get_queue_size(mo.PLAYER2) != 0:
+                        mugen.scan()
+                    print("TOURNAMENT: Insert chars")
+                    print("CHAR ID1: " + str(player1["Characters"][division]))
+                    print("CHAR ID2: " + str(player2["Characters"][division]))
+                    mugen.add_character(player1["Characters"][division], mo.PLAYER1)
+                    mugen.add_character(player2["Characters"][division], mo.PLAYER2)
+                    print("Inserted, waiting for result.")
+                    while(mugen.get_state != mo.DEAD_STATE):
+                        winner = mugen.scan()
+                        if(winner == -1):
+                            pass
+                        else:
+                            break
+                        time.sleep(2)
+                    print("TOURNAMENT: Match finished")
+                    # Ties are unacceptable
+                    if (mugen.get_state() != mo.DEAD_STATE and winner > 0):
                         break
-                    time.sleep(2)
-                print("TOURNAMENT: Match finished")
-                if (mugen.are_you_still_there()):
-                    break
-                else:
-                    mugen.reset(True)
-                    time.sleep(15)
+                    else:
+                        print("Tournament: Mugen is dead, waiting for reset")
+                        mugen.reset(True)
+                        time.sleep(60)
         return winner
         
         
