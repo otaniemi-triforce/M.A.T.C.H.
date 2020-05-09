@@ -14,7 +14,7 @@ GUILD="Triforce"
 
 
 # Set this to prevent multiple registrations with same name
-NO_DUPLICATES = 0
+NO_DUPLICATES = 1
 
 # Mugenoperator for running the matches
 mugen = mo.MugenOperator()
@@ -42,14 +42,14 @@ div = 0
 current_div = 1
 
 # Important pics...because important
-pics = ["Miya-results1.png", "Miya-results2.png", "Miya-results2.png"]
+pics = ["Miya-results1.png", "Miya-results2.png", "Miya-results3.png"]
 
 #Timers for the match start
 timers = False
 # Initial time and warning intervals
-START = 15
-WARN1 = 5
-WARN2 = 5
+START = 90
+WARN1 = 45
+WARN2 = 15
 
 def start_timers():
     global timers
@@ -179,6 +179,7 @@ async def update_presence(tour):
         if fight:
             state_fight =  fight[0][0] + " (" + str(offset_char(fight[0][1], False)) + ") VS " 
             state_fight += fight[1][0] + " (" + str(offset_char(fight[1][1], False)) + ")"
+            update_info_text("Current match: " + state_fight)
         else:
             state_fight = "-"
         new_presence = "Running tournament. Match: " + state_fight + " -- Division: " + str(state_div + 1) + " Round : " + str(state_round)
@@ -195,6 +196,11 @@ async def send_pic(pic, message):
         await get_channel().send(file=discord.File(pic), content=message)
     except FileNotFoundError:
         print(pic + " is missing, not critical but plz fix")
+
+def update_info_text(text):
+    f = open("info.html", "wt")
+    f.write('<head><meta http-equiv="refresh" content="5">' + text + '</head>')
+    f.close()
 
 
 @client.event
@@ -224,15 +230,20 @@ async def on_ready():
         await channel.send(message)
         
     tour = tournament.Tournament()
-    
+    update_info_text("")
     # Startup complete
-    
+    DELAY = 5
+    delay = 0
     # Main loop
     while(True):
         # Sleep for 10 seconds
         await asyncio.sleep(10)
+        if delay == DELAY:
+            delay = 0
+            print("Watchdog. Status: " + str(get_status()))
+                
+        delay += 1
         # Print status then check if timers & tournaments need running
-        print("Watchdog. Status: " + str(get_status()))
         if not tour.is_running() and timers_active():
             # Run timers in order
             await minute_warning(START, channel,) # 60
@@ -262,6 +273,7 @@ async def on_ready():
                 await update_presence(tour)
                 await asyncio.sleep(5)
             
+            update_info_text("")
             await send_pic(pics[random.randint(0,len(pics) - 1)], "Ah that was nice.")
             await channel.send(tour.final_rankings(players, div))
             idle = discord.Activity(type=discord.ActivityType.unknown, name="Inactive")
@@ -335,12 +347,12 @@ async def on_message(message):
                             break
                         if int(i) > MAX_CHAR_ID:
                             chars = []
-                            response = "Highest selectable id is " + str(MAX_CHAR_ID)
+                            await message.channel.send("Highest selectable id is " + str(MAX_CHAR_ID))
                             break
                         if reserved_characters.count(value):
                             chars= []
                             badchars.append(int(i)) 
-                        else:
+                        elif not badchars:
                             chars.append(value)
                             realchars.append(int(i))
                     # If everything is fine so far, do final checks and then create new player
