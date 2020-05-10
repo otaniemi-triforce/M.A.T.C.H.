@@ -80,7 +80,7 @@ class MiyakoBotDiscord(discord.Client):
             print(pic + " is missing, not critical but plz fix")
 
     async def on_ready(self):
-        guild = discord.utils.get(self.guilds, name=GUILD)
+        guild = discord.utils.get(self.guilds, name=DISCORD_GUILD)
 
         print(f'{self.user} connected to Discord')
         print(f'Guild: {guild.name} (id: {guild.id})')
