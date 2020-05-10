@@ -45,12 +45,8 @@ class MiyakoBotTwitch(commands.Bot):
                 print(str(value))
                 if value > 0:
                     if self.matchsys.get_status() == match.IDLE:
-                        offset_change = self.matchsys.new_tournament(value)
-                        response = "Registration is now open for tournament with " + str(value) + " divisions.\n"
-                        if offset_change:
-                            response += "New character offset was created.\n"
-                        response += "Current character offset will be used for " + self.matchsys.get_offset_duration() + " matches.\n"        
-                        response += "\nCharacter ID's 0-" + self.matchsys.get_max_ID() + " are accepted."
+                        self.matchsys.new_tournament(value)
+                        
             except ValueError:
                 response = "Correct syntax is 'new tournament: <divisions>', dummy"
             except AssertionError:
