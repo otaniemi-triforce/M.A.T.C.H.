@@ -8,12 +8,7 @@ import random
 import mugenoperator as mo
 import asyncio
 
-# Set this to prevent multiple registrations with same name
-NO_DUPLICATES = 0
-
-# Discord
-TOKEN=""
-
+from config import *
 
 # Status codes
 IDLE = 0
@@ -21,26 +16,11 @@ REGISTRATION = 1
 RUNNING = 2
 ERROR = -1
 
-
-# Number of time the same offset will be used
-OFFSET_COUNT = 5
-
-# Tournament state
-
-
-#Timers for the match start
-
-# Initial time and warning intervals
-START = 9
-WARN1 = 4
-WARN2 = 1
-
-
 # Important pics...because important
 pics = ["Miya-results1.png", "Miya-results2.png", "Miya-results3.png"]
 
 
-DELAY = 10
+DELAY = 20
 
 
 class match_system():
@@ -238,7 +218,7 @@ class match_system():
         main_thread.start()
         
         loop = asyncio.get_event_loop()
-        loop.create_task(ds_client.start(TOKEN))
+        loop.create_task(ds_client.start(DISCORD_TOKEN))
         loop.create_task(twch_client.start())
         loop.run_forever()
     
