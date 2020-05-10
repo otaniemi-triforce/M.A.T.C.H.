@@ -1,16 +1,16 @@
 from twitchio.ext import commands
-import MATCH as match
 import threading
 import asyncio, time
+from config import *
 
 DELAY = 30
-CHANNEL = 'otaniemitriforce'
+
 
 class MiyakoBotTwitch(commands.Bot):
 
     def __init__(self, matchsys):
-        super().__init__(irc_token='', client_id='', nick='', prefix='#',
-                         initial_channels=[CHANNEL])
+        super().__init__(irc_token=TWITCH_IRC_TOKEN, client_id=TWITCH_CLIENT_ID, nick=TWITCH_NICK, prefix=TWITCH_PREFIX,
+                         initial_channels=[TWITCH_CHANNEL])
         self.matchsys = matchsys
         self.message_queue = []
         
@@ -30,7 +30,7 @@ class MiyakoBotTwitch(commands.Bot):
                 print("Miyako-Twitch: Status: " + str(self.matchsys.get_status()))
             while self.message_queue:
                 print("Miyako-Discord: Sending message.")
-                await self.get_channel(CHANNEL).send(self.message_queue.pop(0))
+                await self.get_channel(TWITCH_CHANNEL).send(self.message_queue.pop(0))
             delay += 1
 
     async def event_message(self, message):
@@ -44,8 +44,8 @@ class MiyakoBotTwitch(commands.Bot):
                 value = int(data[1])
                 print(str(value))
                 if value > 0:
-                    if self.matchsys.get_status() == match.IDLE:
-                        self.matchsys.new_tournament(value)
+                    if self.matchsys.get_status() == IDLE:
+                        offset_change = self.matchsys.new_tournament(value)
                         
             except ValueError:
                 response = "Correct syntax is 'new tournament: <divisions>', dummy"
@@ -54,9 +54,9 @@ class MiyakoBotTwitch(commands.Bot):
                 response = "Ha ha, negative amount of divisions...boy, you're just as keen as I am about this paperwork."
             await message.channel.send(response)
         elif data[0].lower() == "!register":
-            if self.matchsys.get_status() == match.RUNNING:
+            if self.matchsys.get_status() == RUNNING:
                 response = "Tournament has already started."
-            elif self.matchsys.get_status() != match.REGISTRATION:
+            elif self.matchsys.get_status() != REGISTRATION:
                 response = "No tournament registration ongoing."
             else:
                 try:
@@ -78,7 +78,7 @@ class MiyakoBotTwitch(commands.Bot):
                             break
                         realchars.append(int(i))
                         chars.append(value)
-                    if not self.matchsys.check_player(message.author.name and match.NO_DUPLICATES):
+                    if not self.matchsys.check_player(message.author.name and NO_DUPLICATES):
                         player = self.matchsys.new_player(message.author.name, chars)
                         # If everything is fine so far, do final checks and then create new player
                         if chars:
@@ -97,7 +97,7 @@ class MiyakoBotTwitch(commands.Bot):
                                 # It failed...what gives?
                                 # So either data was checked badly or registration closed
                                 # Verify the name in registration, in case some trickery was involved, otherwise the registration closed
-                                if self.matchsys.check_player(message.author.name) and match.NO_DUPLICATES:
+                                if self.matchsys.check_player(message.author.name) and NO_DUPLICATES:
                                     response = "Registration in your name already exists."
                                 else:
                                     response = "Registration time has ended, sorry"
@@ -114,11 +114,11 @@ class MiyakoBotTwitch(commands.Bot):
             await message.channel.send(response)
         elif data[0].lower() == "!status":
             status = self.matchsys.get_status()
-            if status == match.IDLE:
+            if status == IDLE:
                 response = "Idle at the moment"
-            elif status == match.REGISTRATION:
+            elif status == REGISTRATION:
                 response = "Collecting registrations"
-            elif status == match.RUNNING:
+            elif status == RUNNING:
                 response = "Running tournament"    
             else:
                 response = "Something is wrong"
