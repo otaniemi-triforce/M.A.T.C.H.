@@ -3,6 +3,12 @@
 DISCORD_TOKEN=""
 DISCORD_GUILD=""
 
+TWITCH_CHANNEL = ''
+TWITCH_IRC_TOKEN = ''
+TWITCH_CLIENT_ID = ''
+TWITCH_NICK = ''
+TWITCH_PREFIX = ''
+
 
 # Number of time the same offset will be used
 OFFSET_COUNT = 5
