@@ -6,11 +6,7 @@ import asyncio, time
 import threading
 import tournament as tournament
 import random
-import MATCH as match
-
-# Discord token and guild(Channel) name
-
-GUILD="Triforce"
+from config import *
 
 # M.A.T.C.H. Status codes
 IDLE = 0
@@ -156,7 +152,7 @@ class MiyakoBotDiscord(discord.Client):
                         divisions = int(payload.split(":")[1:][0])
                         # Request new tournament from match system
                         self.matchsys.new_tournament(divisions)
-                        # Registration done. Now exit and wait for the MATCH to send us the data during it's next status check
+                        # Tournament creation done. Now exit and wait for the MATCH to send us the data during it's next status check
                         
                     except ValueError:
                         # Typo in message
