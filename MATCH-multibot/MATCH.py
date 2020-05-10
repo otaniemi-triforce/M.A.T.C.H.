@@ -48,6 +48,9 @@ class match_system():
         self.state = IDLE
         self.timers = False
         
+        self.mugen = mo.MugenOperator()
+        self.max_char_ID = self.mugen.get_max_ID()
+        
         self.reserved_characters = []
         self.players = []
         self.div = 0
@@ -57,8 +60,6 @@ class match_system():
         self.lock = threading.Lock()
         
         self.toursys = ""
-        self.mugen = mo.MugenOperator()
-        self.max_char_ID = 20
         
         
         
@@ -158,7 +159,7 @@ class match_system():
             tmp = value + self.offset
         else:
             tmp = value - self.offset
-        return tmp % (self.offset + 1)
+        return tmp % (self.max_char_ID + 1)
 
     def get_max_ID(self):
         return str(self.max_char_ID)
@@ -245,7 +246,25 @@ class match_system():
         self.toursys = tournament.Tournament()
         delay = 1
 
+        previous_state = self.get_status()
+        
         while(1):
+            if previous_state != self.get_status():
+                previous_state = self.get_status()
+                if self.get_status() == REGISTRATION:
+                    message = "Registration is now open for tournament with " + str(self.div) + " divisions.\n"
+                    ds_client.queue_message(message)
+                    twch_client.queue_message(message)
+                    message = ""
+                    if self.offset_counter == 0:
+                        message += "New character offset was created.\n"
+                    message += "Current character offset will be used for " + self.get_offset_duration() + " matches.\n"
+                    ds_client.queue_message(message)
+                    twch_client.queue_message(message)
+                    message = "\nCharacter ID's 0-" + self.get_max_ID() + " are accepted."
+                    ds_client.queue_message(message)
+                    twch_client.queue_message(message)
+                    
             if delay > DELAY:
                 print("M.A.T.C.H.: waiting something to happen")
                 delay = 0
