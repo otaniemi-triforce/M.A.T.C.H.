@@ -17,7 +17,7 @@ WARN2 = 20
 
 
 
-# M.A.T.C.H. Status codes
+# M.A.T.C.H. Status codes, leave these be
 IDLE = 0
 REGISTRATION = 1
 RUNNING = 2
