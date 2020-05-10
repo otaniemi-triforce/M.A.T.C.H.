@@ -155,14 +155,8 @@ class MiyakoBotDiscord(discord.Client):
                         # Parse
                         divisions = int(payload.split(":")[1:][0])
                         # Request new tournament from match system
-                        offset_change = self.matchsys.new_tournament(divisions)
-                        # Update presence
-                        # Write response
-                        response = "Registration is now open for tournament with " + str(divisions) + " divisions.\n"
-                        if offset_change:
-                            response += "New character offset was created.\n"
-                        response += "Current character offset will be used for " + self.matchsys.get_offset_duration() + " matches.\n"        
-                        response += "\nCharacter ID's 0-" + self.matchsys.get_max_ID() + " are accepted."
+                        self.matchsys.new_tournament(divisions)
+                        # Registration done. Now exit and wait for the MATCH to send us the data during it's next status check
                         
                     except ValueError:
                         # Typo in message
