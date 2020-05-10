@@ -2,11 +2,11 @@ import threading
 import time
 import miyako_discord
 import miyako_twitch
-import discord
 import tournament as tournament
 import random
 import mugenoperator as mo
 import asyncio
+
 
 from config import *
 
@@ -19,7 +19,10 @@ ERROR = -1
 # Important pics...because important
 pics = ["Miya-results1.png", "Miya-results2.png", "Miya-results3.png"]
 
+# Time to hold the results screens visible
+RESULT_HOLDTIME = 20
 
+# Watchdog heartbeat delay rounds
 DELAY = 20
 
 
@@ -42,7 +45,6 @@ class match_system():
         self.toursys = ""
         
         
-        
     def check_mugen(self):
         if(self.mugen.are_you_still_there()):
             print("MUGEN is active: " + str(mugen.get_state()))
@@ -58,11 +60,12 @@ class match_system():
                 if state_div == self.ongoing_div:
                     print("Division complete!")
                     self.ongoing_div = state_div + 1
+                    
                 fight = self.toursys.get_state("Fight")
                 if fight:
                     state_fight =  fight[0][0] + " (" + str(self.offset_char(fight[0][1], False)) + ") VS " 
                     state_fight += fight[1][0] + " (" + str(self.offset_char(fight[1][1], False)) + ")"
-                    self.update_info_text("Current match: " + state_fight)
+                    self.update_file_text("Current match: " + state_fight, "info.html")
                 else:
                     state_fight = "-"
                 new_presence = "Running tournament. Match: " + state_fight + " -- Division: " + str(state_div + 1) + " Round : " + str(state_round)
@@ -82,9 +85,17 @@ class match_system():
     def __timers_active(self):
         return self.timers
 
-    def update_info_text(self, text):
-        f = open("info.html", "wt")
-        f.write('<head><meta http-equiv="refresh" content="5">' + text + '</head>')
+    def update_file_text(self, text, file):
+        html = ""
+        for char in text:
+            if char == '\n':
+                html += "<br>"
+            elif char == " ":
+                html +="&nbsp;"
+            else:
+                html += char
+        f = open(file, "wt")
+        f.write('<head><meta http-equiv="refresh" content="5">' + html + '</head>')
         f.close()
 
     # Find current online presence set to discord
@@ -225,13 +236,17 @@ class match_system():
     def main_loop(self, ds_client, twch_client):
         self.toursys = tournament.Tournament()
         delay = 1
-
+        
+        self.update_file_text("", "info.html")
         previous_state = self.get_status()
+        
         
         while(1):
             if previous_state != self.get_status():
                 previous_state = self.get_status()
                 if self.get_status() == REGISTRATION:
+                    self.update_file_text("Registration in progress", "info.html")
+                
                     message = "Registration is now open for tournament with " + str(self.div) + " divisions.\n"
                     ds_client.queue_message(message)
                     twch_client.queue_message(message)
@@ -261,12 +276,13 @@ class match_system():
                 ds_client.set_presence(self.get_new_presence())
                 ds_client.queue_message(self.time_warning(WARN1 + WARN2)) #30
                 twch_client.queue_message(self.time_warning(WARN1 + WARN2))
+                self.update_file_text("Registration in progress. Tournament starting soon.", "info.html")
                 time.sleep(WARN1) 
                 ds_client.set_presence(self.get_new_presence())
                 ds_client.queue_message(self.time_warning(WARN2))
                 twch_client.queue_message(self.time_warning(WARN2))
                 time.sleep(WARN2)
-                # Countdoen complete, reset
+                # Countdown complete, reset
                 self.lock.acquire()
                 self.state = RUNNING
                 self.lock.release()
@@ -285,17 +301,25 @@ class match_system():
             if self.toursys.is_running():
                 while self.toursys.is_running():
                     # Check status
+                    # Send new presence data to Discord bot and update info texts
                     ds_client.set_presence(self.get_new_presence())
                     time.sleep(5)
                 # Tournament ended
                 self.lock.acquire()
                 self.state = IDLE
                 self.lock.release()
-                self.update_info_text("")
+                self.update_file_text("", "info.html")
                 print("M.A.T.C.H.: Tournament ended")
                 twch_client.queue_message("Tournament finished.")
                 ds_client.queue_pic(pics[random.randint(0,len(pics) - 1)], "Ah that was nice.")
-                ds_client.queue_message(self.toursys.final_rankings(self.players, self.div))
+                results = self.toursys.final_rankings(self.players, self.div)
+                ds_client.queue_message(results)
+                
+                # Update the results.html. Hold data for RESULT_HOLDTIME and then clear
+                results_html = "<div>Tournament ended\n" + results + " </div>"
+                update_file_text(results_html, "results.html")
+                time.sleep(RESULT_HOLDTIME)
+                update_file_text("", "results.html")
                 
 
 
