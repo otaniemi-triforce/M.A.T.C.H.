@@ -20,7 +20,7 @@ If you have this, then minimal installation is to:
  * From pip install:
     * twitchio, discord.py - depending on what kind of bots you want
  * Download this system along with Mugenoperator from MUGEN-tournament (https://github.com/otaniemi-triforce/MUGEN-tournament)
- * Choose whether you wish the plain Discord version or the more advanced Discord/Twitch Multibot-version.
+ * Choose whether you wish to have the plain Discord version or the more advanced Discord/Twitch Multibot-version.
  * Create accounts for Discord/Twitch bots. Instructions to these are available from those services.
  * Copy the contents of the selected version to the Mugen root and setup the account info to config.py (directly to the MATCH in Discord option)
  * Run MATCH.py and hope for the best
