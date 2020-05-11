@@ -29,8 +29,9 @@ class MiyakoBotTwitch(commands.Bot):
                 delay = 0
                 print("Miyako-Twitch: Status: " + str(self.matchsys.get_status()))
             while self.message_queue:
-                print("Miyako-Discord: Sending message.")
+                print("Miyako-Twitch: Sending message.")
                 await self.get_channel(TWITCH_CHANNEL).send(self.message_queue.pop(0))
+                time.sleep(1.5)
             delay += 1
 
     async def event_message(self, message):
@@ -92,7 +93,8 @@ class MiyakoBotTwitch(commands.Bot):
                         else:
                             # Everything should be fine now, register
                             if self.matchsys.add_player(player):
-                                response = message.author.name + " registered with characters: " + ','.join(str(i) for i in realchars)
+                                register_message = message.author.name + " registered with characters: " + ','.join(str(i) for i in realchars)
+                                self.matchsys.queue_register_message(register_message)
                             else:
                                 # It failed...what gives?
                                 # So either data was checked badly or registration closed
@@ -111,7 +113,8 @@ class MiyakoBotTwitch(commands.Bot):
                 # New player creation failed, incorrect number of divisions
                 except IndexError:
                     response = "You need to give me exactly: " + str(self.matchsys.get_divisions()) + " characters. One for each division"
-            await message.channel.send(response)
+            if response:
+                await message.channel.send(response)
         elif data[0].lower() == "!status":
             status = self.matchsys.get_status()
             if status == IDLE:
