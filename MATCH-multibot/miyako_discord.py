@@ -8,11 +8,6 @@ import tournament as tournament
 import random
 from config import *
 
-# M.A.T.C.H. Status codes
-IDLE = 0
-REGISTRATION = 1
-RUNNING = 2
-ERROR = -1
 
 DELAY = 30
 
@@ -48,12 +43,12 @@ class MiyakoBotDiscord(discord.Client):
 
     # Get online presence
     def get_presence(self):
-        guild = discord.utils.get(self.guilds, name=GUILD)
+        guild = discord.utils.get(self.guilds, name=DISCORD_GUILD)
         return guild.me.activity.name
 
     # Get client channel
     def get_channel(self):
-        guild = discord.utils.get(self.guilds, name=GUILD)
+        guild = discord.utils.get(self.guilds, name=DISCORD_GUILD)
         return discord.utils.get(guild.text_channels, name='mugen-mayhem')
 
     # Update the presence to match tournament status
@@ -130,6 +125,7 @@ class MiyakoBotDiscord(discord.Client):
             return
         # If mentioned in message, parse
         elif self.user.mentioned_in(message):
+            response = ""
             payload = message.content.split(">")[1]
             
             if payload == " status": # status requested
@@ -187,7 +183,7 @@ class MiyakoBotDiscord(discord.Client):
                                 break
                             realchars.append(int(i))
                             chars.append(value)
-                        if not self.matchsys.check_player(message.author.name and match.NO_DUPLICATES):
+                        if not self.matchsys.check_player(message.author.name and NO_DUPLICATES):
                             player = self.matchsys.new_player(message.author.name, chars)
                             # If everything is fine so far, do final checks and then create new player
                             if chars:
@@ -201,12 +197,13 @@ class MiyakoBotDiscord(discord.Client):
                             else:
                                 # Everything should be fine now, register
                                 if self.matchsys.add_player(player):
-                                    response = message.author.name + " registered with characters: " + ','.join(str(i) for i in realchars)
+                                    register_message = message.author.name + " registered with characters: " + ','.join(str(i) for i in realchars)
+                                    self.matchsys.queue_register_message(register_message)
                                 else:
                                     # It failed...what gives?
                                     # So either data was checked badly or registration closed
                                     # Verify the name in registration, in case some trickery was involved, otherwise the registration closed
-                                    if self.matchsys.check_player(message.author.name) and match.NO_DUPLICATES:
+                                    if self.matchsys.check_player(message.author.name) and NO_DUPLICATES:
                                         response = "Registration in your name already exists."
                                     else:
                                         response = "Registration time has ended, sorry"
@@ -222,6 +219,6 @@ class MiyakoBotDiscord(discord.Client):
                         response = "You need to give me exactly: " + str(self.matchsys.get_divisions()) + " characters. One for each division"
             else:
                 return
-
-            await message.channel.send(response)
+            if response:
+                await message.channel.send(response)
         return
