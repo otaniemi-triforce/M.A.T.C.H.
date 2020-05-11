@@ -1,8 +1,8 @@
 # M.A.T.C.H.
-Mugen Automated Tournament Controller and Handler
+Mugen Automated Tournament Creator and Handler
 ----
 
-Mugen Automated Tournament Controller and Handler (M.A.T.C.H.) is a system that, like the name suggests, allows automated creation and control of AI vs AI Mugen tournaments. The system has integration to several chat-platforms (Discord and Twitch at the moment) allowing users to give commands to the system remotely. The control of the system includes initializing the tournament structure and registering characters (AI Prizefighters) to the tournaments. To keep the selection from being too easy, the system generates and maintains a random offset that is applied to all choices for five tournaments (otherwise people would just automatically go for Mint or some other overpowered characters).
+Mugen Automated Tournament Creator and Handler (M.A.T.C.H.) is a system that, like the name suggests, allows automated creation and control of AI vs AI Mugen tournaments. The system has integration to several chat-platforms (Discord and Twitch at the moment) allowing users to give commands to the system remotely. The control of the system includes initializing the tournament structure and registering characters (AI Prizefighters) to the tournaments. To keep the selection from being too easy, the system generates and maintains a random offset that is applied to all choices for five tournaments (otherwise people would just automatically go for Mint or some other overpowered characters).
 
 Why would you want to do this?
 ----
