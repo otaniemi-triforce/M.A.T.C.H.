@@ -12,7 +12,7 @@ If nothing else, it provides a different kind of interaction from betting on the
 
 Okay how does this thing work?
 ----
-Well, to start of you need a machine that can run Mugen, this relatively lightweight system and OBS or some other streaming system to show the fights to the user.
+Well, for starters you need a machine that can run Mugen, this relatively lightweight system and OBS or some other streaming system to show the fights to the user.
 
 If you have this, then minimal installation is to:
  * Install the Mugen with some set of characters
