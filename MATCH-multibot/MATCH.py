@@ -19,17 +19,16 @@ ERROR = -1
 # Important pics...because important
 pics = ["Miya-results1.png", "Miya-results2.png", "Miya-results3.png"]
 
-# Time to hold the results screens visible
-RESULT_HOLDTIME = 20
 
 # Watchdog heartbeat delay rounds
-DELAY = 20
+DELAY = 60
 
 
 class match_system():
     def __init__(self):
         self.state = IDLE
         self.timers = False
+        self.__timer_count = TIMER_INTERVALS[0]
         
         self.mugen = mo.MugenOperator()
         self.max_char_ID = self.mugen.get_max_ID()
@@ -43,6 +42,8 @@ class match_system():
         self.lock = threading.Lock()
         
         self.toursys = ""
+        self.register_messages = []
+        self.division_complete = False
         
         
     def check_mugen(self):
@@ -52,15 +53,16 @@ class match_system():
             print("MUGEN is dead, abandon all hope.")
             self.mugen.reset()
 
-    def get_new_presence(self):
+    # Get the current tournament status from the tournament subsystem
+    # Updates the info text and lets the system know that division has finished
+    # Returns a presence that can be forwarded to discord
+    def tournament_status(self):
             if self.toursys.is_running() and self.get_status() == RUNNING:
                 state_round = self.toursys.get_state("Round")
                 state_div = self.toursys.get_state("Div")
-                print("Division: " + str(state_div) + " (" + str(self.ongoing_div) + ") : " + " round: " + str(state_round))
                 if state_div == self.ongoing_div:
-                    print("Division complete!")
                     self.ongoing_div = state_div + 1
-                    
+                    self.division_complete = True
                 fight = self.toursys.get_state("Fight")
                 if fight:
                     state_fight =  fight[0][0] + " (" + str(self.offset_char(fight[0][1], False)) + ") VS " 
@@ -80,6 +82,7 @@ class match_system():
         self.timers = True
         
     def __reset_timers(self):
+        self.__timer_count = TIMER_INTERVALS[0]
         self.timers = False
         
     def __timers_active(self):
@@ -87,16 +90,25 @@ class match_system():
 
     def update_file_text(self, text, file):
         html = ""
+        endline = True
         for char in text:
             if char == '\n':
                 html += "<br>"
-            elif char == " ":
+                endline = True
+            elif char == " " and endline:
                 html +="&nbsp;"
             else:
+                endline = False
                 html += char
         f = open(file, "wt")
         f.write('<head><meta http-equiv="refresh" content="5">' + html + '</head>')
         f.close()
+
+    # Queue registration messages to be sent
+    def queue_register_message(self, message):
+        if message:
+            self.register_messages.append(str(message))
+
 
     # Find current online presence set to discord
     # Use this as client state
@@ -237,6 +249,7 @@ class match_system():
         self.toursys = tournament.Tournament()
         delay = 1
         
+        self.update_file_text("", "results.html")
         self.update_file_text("", "info.html")
         previous_state = self.get_status()
         
@@ -247,41 +260,42 @@ class match_system():
                 if self.get_status() == REGISTRATION:
                     self.update_file_text("Registration in progress", "info.html")
                 
-                    message = "Registration is now open for tournament with " + str(self.div) + " divisions.\n"
-                    ds_client.queue_message(message)
+                    
+                    message = "Registration is now open for tournament with " + str(self.div) + " divisions.\nCharacter ID's 0-" + self.get_max_ID() + " are accepted.\n"
+                    ds_message = "" + message
                     twch_client.queue_message(message)
+                    print(message)
                     message = ""
                     if self.offset_counter == 0:
                         message += "New character offset was created.\n"
                     message += "Current character offset will be used for " + self.get_offset_duration() + " matches.\n"
-                    ds_client.queue_message(message)
+                    ds_client.queue_message(ds_message + message)
                     twch_client.queue_message(message)
-                    message = "\nCharacter ID's 0-" + self.get_max_ID() + " are accepted."
-                    ds_client.queue_message(message)
-                    twch_client.queue_message(message)
+                    print(message)
                     
             if delay > DELAY:
-                print("M.A.T.C.H.: waiting something to happen")
+                print("M.A.T.C.H. status: " + str(self.get_status()))
                 delay = 0
             delay += 1
-            time.sleep(5)
-            ds_client.set_presence(self.get_new_presence())
+            time.sleep(1)
+            if delay % 5 == 0:
+                ds_client.set_presence(self.tournament_status())
+            # If any queued registrations exists, send them
+            while self.register_messages:
+                msg = self.register_messages.pop(0)
+                ds_client.queue_message(msg)
+                twch_client.queue_message(msg)
+
+            if self.__timers_active():
+                for interval in TIMER_INTERVALS:
+                    if self.__timer_count == interval:
+                        ds_client.queue_message(self.time_warning(interval)) # 60
+                        twch_client.queue_message(self.time_warning(interval))
+                        self.update_file_text("Registration in progress. Tournament starting in " + str(interval), "info.html")
+                self.__timer_count -= 1
+             
             # Print status then check if timers & tournaments need running
-            if not self.toursys.is_running() and self.__timers_active():
-                print("M.A.T.C.H.: Timers started")
-                # Run timers in order
-                ds_client.queue_message(self.time_warning(START)) # 60
-                twch_client.queue_message(self.time_warning(START))
-                time.sleep(START - (WARN1 + WARN2)) #30
-                ds_client.set_presence(self.get_new_presence())
-                ds_client.queue_message(self.time_warning(WARN1 + WARN2)) #30
-                twch_client.queue_message(self.time_warning(WARN1 + WARN2))
-                self.update_file_text("Registration in progress. Tournament starting soon.", "info.html")
-                time.sleep(WARN1) 
-                ds_client.set_presence(self.get_new_presence())
-                ds_client.queue_message(self.time_warning(WARN2))
-                twch_client.queue_message(self.time_warning(WARN2))
-                time.sleep(WARN2)
+            if not self.toursys.is_running() and self.__timers_active() and self.__timer_count <= 0:
                 # Countdown complete, reset
                 self.lock.acquire()
                 self.state = RUNNING
@@ -299,11 +313,30 @@ class match_system():
                 
             # While in tournament, suspend other activity
             if self.toursys.is_running():
+                delay = 0
                 while self.toursys.is_running():
                     # Check status
                     # Send new presence data to Discord bot and update info texts
-                    ds_client.set_presence(self.get_new_presence())
-                    time.sleep(5)
+                    status = self.tournament_status()
+                    if delay == 5:
+                        ds_client.set_presence(status)
+                        delay = 0
+                    
+                    # Check if we need to deliver division results
+                    if self.division_complete:
+                        self.division_complete = False
+                        if self.div > 0:
+                            print("results for division:" + str(self.ongoing_div - 2))
+                            results = self.toursys.rankings(self.players, self.ongoing_div - 2)
+                            ds_client.queue_message("Division: " + str(self.ongoing_div - 1) + " finished." )
+                            results_html = "<div>" + results + " </div>"
+                            
+                            self.update_file_text(results_html, "results.html")
+                            time.sleep(RESULT_HOLDTIME_SHORT)
+                            self.update_file_text("", "results.html")
+                    time.sleep(1)
+                    delay += 1
+                    
                 # Tournament ended
                 self.lock.acquire()
                 self.state = IDLE
@@ -317,15 +350,15 @@ class match_system():
                 
                 # Update the results.html. Hold data for RESULT_HOLDTIME and then clear
                 results_html = "<div>Tournament ended\n" + results + " </div>"
-                update_file_text(results_html, "results.html")
+                self.update_file_text(results_html, "results.html")
                 time.sleep(RESULT_HOLDTIME)
-                update_file_text("", "results.html")
+                self.update_file_text("", "results.html")
                 
 
 
 def main():   
-    jee = match_system()
-    jee.main() 
+    matchsys = match_system()
+    matchsys.main() 
     
 if __name__ == "__main__":
     main()
