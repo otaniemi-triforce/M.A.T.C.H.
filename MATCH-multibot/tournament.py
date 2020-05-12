@@ -36,6 +36,8 @@ class Tournament:
     # Prints out the ranking of the given division
     def rankings(self, players, division):
         print("Rankings being generated for: " + str(division + 1))
+        score_dict = {}
+     
         count = 32
         position = 1
         message = ("---------\n")
@@ -43,20 +45,25 @@ class Tournament:
         message += ("Rankings:\n---------\n")
         while(count):
             for player in players:
+                score_dict[player["Name"]] = player["Rank"][division]
                 if player["Rank"][division] == count:
                     message += str(position) + '. ' + player["Name"] + ' - Tournament round ' + str(player["Rank"][division]) + "\n"
                     position += 1
             count -= 1
-        return message
+        return message, score_dict
 
     def final_rankings(self, players, div):
         score = []
+        score_dict = {}
         print("Final rankings")
         tmp = 0
         for player in players:
             score.append(0)
+            name = player["Name"]
+            score_dict[name] = 0
             for i in range(div):
                 score[tmp] += player["Rank"][i]
+                score_dict[name] += player["Rank"][i]
             tmp += 1
         count = 10 * div
         position = 1
@@ -68,7 +75,7 @@ class Tournament:
                     message += str(position) + '. ' + players[i]["Name"] + ' - Total score: ' + str(score[i]) + "\n"
                     position += 1
             count -= 1
-        return message
+        return message, score_dict
 
     def player_order(self, order):
         message = "Player order for next round:"
