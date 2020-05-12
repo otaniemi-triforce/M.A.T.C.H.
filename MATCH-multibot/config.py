@@ -15,6 +15,9 @@ OFFSET_COUNT = 5
 # Set this to prevent multiple registrations with same name
 NO_DUPLICATES = 0
 
+# File for scores
+SCOREFILE = "match.score" 
+
 # Timer notification intervals in ~seconds. First index is the timer start point, rest are intervals for notifications.
 # Insert as many as you like, but remember there is few second delay before these are updated to all outputs
 # (Message sending delays, HTML update intervals and so forth)...and also that you can spam users to death with these.
