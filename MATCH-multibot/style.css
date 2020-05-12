@@ -4,10 +4,30 @@
     src: url('PressStart2P.ttf');
 }
 
-body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; font-family: PressStart2P; word-break: break-word; width: 1100; font-size: 26px; color: #ffffff;}
+body { 
+    background-color: rgba(0, 0, 0, 0); 
+    margin: 0px auto; 
+    overflow: hidden; 
+    font-family: PressStart2P; 
+    word-break: break-word; 
+    width: 1100; 
+    font-size: 20px; 
+    color: #ffffff;}
 
-div { background-color: #fff0ff; min-height: 1280px; text-align: left; font-size: 19px; padding: 25px 250px; color: #000000;}
+div { 
+    background-color: #fff0ff;
+    min-height: 1280px;
+    text-align: left;
+    font-size: 24px;
+    padding: 25px 250px;
+    color: #000000;}
 
-table {width: 100%; color: #000000; font-size: 18px;}
+table {
+    width: 100%;
+    color: #000000;
+    font-size: 22px;
+}
 
-td { padding: 0px 0px 0px 0px; }
+td {
+    padding: 0px 0px 0px 0px;
+}
