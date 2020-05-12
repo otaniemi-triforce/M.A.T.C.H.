@@ -67,7 +67,7 @@ class match_system():
                 if fight:
                     state_fight =  fight[0][0] + " (" + str(self.offset_char(fight[0][1], False)) + ") VS " 
                     state_fight += fight[1][0] + " (" + str(self.offset_char(fight[1][1], False)) + ")"
-                    self.update_file_text("Current match: " + state_fight, "info.html")
+                    self.update_file_text("Current match: " + state_fight, "info.html", 5)
                 else:
                     state_fight = "-"
                 new_presence = "Running tournament. Match: " + state_fight + " -- Division: " + str(state_div + 1) + " Round : " + str(state_round)
@@ -88,7 +88,11 @@ class match_system():
     def __timers_active(self):
         return self.timers
 
-    def update_file_text(self, text, file):
+    # Update/create HTML file.
+    # Text is the content, time is the automatic refresh time for the page
+    # Idea here is that the page can be empty with minimal refresh time making it responsive to updates
+    # When needed, the content can be updated and shown for refresh time.
+    def update_file_text(self, text, file, time):
         html = ""
         endline = True
         for char in text:
@@ -101,7 +105,7 @@ class match_system():
                 endline = False
                 html += char
         f = open(file, "wt")
-        f.write('<head><meta http-equiv="refresh" content="5">' + html + '</head>')
+        f.write('<head><meta http-equiv="refresh" content=' + str(time) +'>' + html + '</head>')
         f.close()
 
     # Queue registration messages to be sent
@@ -249,8 +253,10 @@ class match_system():
         self.toursys = tournament.Tournament()
         delay = 1
         
-        self.update_file_text("", "results.html")
-        self.update_file_text("", "info.html")
+        # Reset the HTML outputs to empty content and 1 second refresh
+        
+        self.update_file_text("", "results.html", 1)
+        self.update_file_text("", "info.html", 1)
         previous_state = self.get_status()
         
         
@@ -258,7 +264,7 @@ class match_system():
             if previous_state != self.get_status():
                 previous_state = self.get_status()
                 if self.get_status() == REGISTRATION:
-                    self.update_file_text("Registration in progress", "info.html")
+                    self.update_file_text("Registration in progress", "info.html", 8)
                 
                     
                     message = "Registration is now open for tournament with " + str(self.div) + " divisions.\nCharacter ID's 0-" + self.get_max_ID() + " are accepted.\n"
@@ -291,7 +297,7 @@ class match_system():
                     if self.__timer_count == interval:
                         ds_client.queue_message(self.time_warning(interval)) # 60
                         twch_client.queue_message(self.time_warning(interval))
-                        self.update_file_text("Registration in progress. Tournament starting in " + str(interval), "info.html")
+                        self.update_file_text("Registration in progress. Tournament starting in " + str(interval), "info.html", 8)
                 self.__timer_count -= 1
              
             # Print status then check if timers & tournaments need running
@@ -331,9 +337,18 @@ class match_system():
                             ds_client.queue_message("Division: " + str(self.ongoing_div - 1) + " finished." )
                             results_html = "<div>" + results + " </div>"
                             
-                            self.update_file_text(results_html, "results.html")
-                            time.sleep(RESULT_HOLDTIME_SHORT)
-                            self.update_file_text("", "results.html")
+                            # Right, time to show results with HTML trickery
+                            
+                            # Update page with results and automatic refresh of short holdtime
+                            self.update_file_text(results_html, "results.html", RESULT_HOLDTIME_SHORT)
+                            # Wait few seconds for the page to update
+                            time.sleep(3)
+                            # Write empty page with auto refresh of 1 second. This will be shown after the auto-refresh of the first update is reached
+                            self.update_file_text("", "results.html", 1)
+                            # Wait for the rest of the results holdtime.
+                            time.sleep(RESULT_HOLDTIME_SHORT - 2)
+                           
+                            
                     time.sleep(1)
                     delay += 1
                     
@@ -341,7 +356,7 @@ class match_system():
                 self.lock.acquire()
                 self.state = IDLE
                 self.lock.release()
-                self.update_file_text("", "info.html")
+                self.update_file_text("", "info.html", 1)
                 print("M.A.T.C.H.: Tournament ended")
                 twch_client.queue_message("Tournament finished.")
                 ds_client.queue_pic(pics[random.randint(0,len(pics) - 1)], "Ah that was nice.")
@@ -350,15 +365,16 @@ class match_system():
                 
                 # Update the results.html. Hold data for RESULT_HOLDTIME and then clear
                 results_html = "<div>Tournament ended\n" + results + " </div>"
-                self.update_file_text(results_html, "results.html")
-                time.sleep(RESULT_HOLDTIME)
-                self.update_file_text("", "results.html")
+                self.update_file_text(results_html, "results.html", RESULT_HOLDTIME)
+                time.sleep(2)
+                self.update_file_text("", "results.html", 1)
+                time.sleep(RESULT_HOLDTIME - 1)
                 
 
 
 def main():   
-    matchsys = match_system()
-    matchsys.main() 
+    jee = match_system()
+    jee.main() 
     
 if __name__ == "__main__":
     main()
