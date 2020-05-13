@@ -10,16 +10,6 @@ import asyncio
 
 from config import *
 
-# Status codes
-IDLE = 0
-REGISTRATION = 1
-RUNNING = 2
-ERROR = -1
-
-# Important pics...because important
-pics = ["Miya-results1.png", "Miya-results2.png", "Miya-results3.png"]
-
-
 # Watchdog heartbeat delay rounds
 DELAY = 60
 
@@ -122,7 +112,10 @@ class match_system():
     def __scoretable(self, dict):
         table = "<table>"
         count = 1
+        # Limit the table size to RANKING_LIST_MAX
         for player in [k for k in sorted(dict.items(), key=lambda item: item[1], reverse=True)]:
+            if count > RANKING_LIST_MAX:
+                break
             table += "<tr><td>" + str(count) + ".</td><td>" + player[0] + "</td><td>" + str(player[1]) + "</td></tr>"
             count += 1
         table += "</table>"
@@ -458,6 +451,7 @@ class match_system():
                                                     
                             # Right, time to show results with HTML trickery
                             results_html = "<div> Division " + str(self.ongoing_div - 1) + " results."
+                            results_html += "\n--------------\n"
                             results_html += self.__scoretable(results_dict) + "</div>"
                             
                             # Update page with results and automatic refresh of short holdtime
@@ -486,7 +480,7 @@ class match_system():
                 
                 # Send tournament end messages
                 twch_client.queue_message("Tournament finished.")
-                ds_client.queue_pic(pics[random.randint(0,len(pics) - 1)], "Ah that was nice.")
+                ds_client.queue_pic(PICS[random.randint(0,len(PICS) - 1)], "Ah that was nice.")
                 # Create results
                 results, results_dict = self.toursys.final_rankings(self.players, self.div)
                 ds_client.queue_message(results)
@@ -500,7 +494,7 @@ class match_system():
                 # Update the results.html with results then highscores. 
                 # Hold data for RESULT_HOLDTIME for both, then clear
                 
-                results_html = "<div>Final tournament scores:\n" + self.__scoretable(results_dict) + " </div>"
+                results_html = "<div>Final tournament scores:\n--------------\n" + self.__scoretable(results_dict) + " </div>"
                 self.update_file_text(results_html, "results.html", RESULT_HOLDTIME)
                 # Meanwhile, create HTML table for highscores
                 scores = "<div>All time scores:\n--------------\n"
