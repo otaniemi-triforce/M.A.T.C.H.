@@ -540,8 +540,8 @@ class match_system():
 
 
 def main():   
-    jee = match_system()
-    jee.main() 
+    matchsys = match_system()
+    matchsys.main() 
     
 if __name__ == "__main__":
     main()
