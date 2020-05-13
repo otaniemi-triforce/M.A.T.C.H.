@@ -31,6 +31,7 @@ RANKING_LIST_MAX = 24
 
 # Important pics...because important. One of these is sent to Discord when tournament ends.
 PICS = ["match-common/Miya-results1.png", "match-common/Miya-results2.png", "match-common/Miya-results3.png"]
+TOURNAMENT_START_PIC = "match-common/miya-happy-sm.png"
 
 # M.A.T.C.H. Status codes, no need to ever touch these
 IDLE = 0
