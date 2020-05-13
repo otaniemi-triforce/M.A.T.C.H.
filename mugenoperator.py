@@ -201,9 +201,11 @@ class MugenOperator():
                 if(player == "0.0"):
                     if(num != self.char1):
                         self.debug("ERROR: Character mismatch. P"+str(player)+" char should be "+str(self.char1)+", but "+str(num)+" was loaded!")
+                        self.player1_cursor = self.calculate_wanted_point(num)  # Fix cursor position
                 else:
                     if(num != self.char2):
                         self.debug("ERROR: Character mismatch. P"+str(player)+" char should be "+str(self.char2)+", but "+str(num)+" was loaded!")
+                        self.player2_cursor = self.calculate_wanted_point(num)  # Fix cursor position
             
             # Loading character
             if(line.startswith("Loading character")):
