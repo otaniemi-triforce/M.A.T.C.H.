@@ -439,7 +439,7 @@ class match_system():
                 self.__reset_timers()
                 
                 # Kickoff tournament
-                ds_client.queue_pic("miya-happy-sm.png", "Tournament started, finally we get the good bit")
+                ds_client.queue_pic(TOURNAMENT_START_PIC, "Tournament started, finally we get the good bit")
                 twch_client.queue_message("Tournament started, finally some action.")
                 # Create new tournament thread
                 tour_t = threading.Thread(target=self.toursys.run_tournament , args=(self.players, self.div, self.mugen))
