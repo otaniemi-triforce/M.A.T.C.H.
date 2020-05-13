@@ -121,6 +121,24 @@ class match_system():
         table += "</table>"
         return table
 
+    # Create results HTML for the finished division. Display the page for HOLDTIME_SHORT.
+    
+    def show_division_results(self, results_dict, division):
+        # Right, time to create and show the results with some HTML trickery
+        # First create the page structure. Put the content in div to enable different style
+        
+        results_html = "<div> Division " + str(division) + " results."
+        results_html += "\n--------------\n"
+        results_html += self.__scoretable(results_dict) + "</div>"
+        
+        # Update page with results and automatic refresh of short holdtime
+        self.update_file_text(results_html, "results.html", RESULT_HOLDTIME_SHORT)
+        # Wait few seconds for the page to update
+        time.sleep(3)
+        # Write empty page with auto refresh of 1 second. This will be shown after the auto-refresh of the first update is reached
+        self.update_file_text("", "results.html", 1)
+        # Wait for the rest of the results holdtime.
+        time.sleep(RESULT_HOLDTIME_SHORT - 2)
 
     ##################
     #     TIMERS     #
@@ -259,6 +277,7 @@ class match_system():
     # Get the current tournament status from the tournament subsystem
     # Updates the info text and lets the system know that division has finished
     # Returns a presence that can be forwarded to discord
+    
     def tournament_status(self):
             if self.toursys.is_running() and self.get_status() == RUNNING:
                 state_round = self.toursys.get_state("Round")
@@ -279,6 +298,8 @@ class match_system():
                     new_presence = "Idle"
                 elif self.get_status() == REGISTRATION:
                     new_presence = "Registration open for " + str(self.div) + " division tournament. Current entries: " + str(len(self.players))
+                else:
+                    new_presence = "Tournament ended"
             return new_presence
 
 
@@ -448,21 +469,8 @@ class match_system():
                             
                             # Send update to Discord
                             ds_client.queue_message("Division: " + str(self.ongoing_div - 1) + " finished." )
-                                                    
-                            # Right, time to show results with HTML trickery
-                            results_html = "<div> Division " + str(self.ongoing_div - 1) + " results."
-                            results_html += "\n--------------\n"
-                            results_html += self.__scoretable(results_dict) + "</div>"
-                            
-                            # Update page with results and automatic refresh of short holdtime
-                            self.update_file_text(results_html, "results.html", RESULT_HOLDTIME_SHORT)
-                            # Wait few seconds for the page to update
-                            time.sleep(3)
-                            # Write empty page with auto refresh of 1 second. This will be shown after the auto-refresh of the first update is reached
-                            self.update_file_text("", "results.html", 1)
-                            # Wait for the rest of the results holdtime.
-                            time.sleep(RESULT_HOLDTIME_SHORT - 2)
-                           
+                            # Show results HTML
+                            self.show_division_results(results_dict, self.ongoing_div - 1)                        
                             
                     time.sleep(1)
                     delay += 1
@@ -471,11 +479,19 @@ class match_system():
                 
                 # RESULTS
                 
-                self.lock.acquire()
-                self.state = IDLE
-                self.lock.release()
-                
+                # Clear the info text
                 self.update_file_text("", "info.html", 1)
+                
+                # Update Discord presence and show division results:
+                ds_client.set_presence(self.tournament_status())
+                results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 2)
+                
+                # Send update to Discord
+                ds_client.queue_message("Division: " + str(self.ongoing_div - 1) + " finished." )
+                # Show results HTML
+                self.show_division_results(results_dict, self.ongoing_div)
+                
+                
                 print("M.A.T.C.H.: Tournament ended")
                 
                 # Send tournament end messages
@@ -508,20 +524,24 @@ class match_system():
                 time.sleep(RESULT_HOLDTIME + 1)
                 # Clear the page and set refresh to 1 second
                 self.update_file_text("", "results.html", 1)
-                # Let the score page refresh
+
+                # While the all-time scores are shown, reset the system state
+                
+                # Change state
+                self.lock.acquire()
+                self.state = IDLE
+                self.lock.release()
+
+                # Wait for the all-time highscores 
                 time.sleep(RESULT_HOLDTIME - 4)
                 
-                # Display all-time highscores
-                
-                
-                
-                # And back to idle/registration part
+                # And back to idle/registration part of the loop...
                 
 
 
 def main():   
-    matchsys = match_system()
-    matchsys.main() 
+    jee = match_system()
+    jee.main() 
     
 if __name__ == "__main__":
     main()
