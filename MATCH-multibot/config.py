@@ -13,21 +13,26 @@ TWITCH_PREFIX = '#'
 OFFSET_COUNT = 5
 
 # Set this to prevent multiple registrations with same name
-NO_DUPLICATES = 0
+# Note that this will make the scores rather interesting
+NO_DUPLICATES = 1
 
-# File for scores
-SCOREFILE = "match.score" 
-
-# Timer notification intervals in ~seconds. First index is the timer start point, rest are intervals for notifications.
-# Insert as many as you like, but remember there is few second delay before these are updated to all outputs
-# (Message sending delays, HTML update intervals and so forth)...and also that you can spam users to death with these.
-TIMER_INTERVALS = [150,90,60,30,15]
+# Initial time and warning intervals
+TIMER_INTERVALS = [180,120,60,30,15]
 
 # Time to hold the results screens visible
-RESULT_HOLDTIME = 30
+RESULT_HOLDTIME = 15
 RESULT_HOLDTIME_SHORT = 15
 
-# M.A.T.C.H. Status codes, leave these be
+# File for scores
+SCOREFILE = "match.score"
+
+# Last position in the ranking list. Change this (or the .css) to fit the scores to the generated HTML-page
+RANKING_LIST_MAX = 24
+
+# Important pics...because important. One of these is sent to Discord when tournament ends.
+PICS = ["match-common/Miya-results1.png", "match-common/Miya-results2.png", "match-common/Miya-results3.png"]
+
+# M.A.T.C.H. Status codes, no need to ever touch these
 IDLE = 0
 REGISTRATION = 1
 RUNNING = 2
