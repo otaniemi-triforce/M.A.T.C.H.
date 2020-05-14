@@ -176,7 +176,9 @@ class Tournament:
                 self.__update_tournament_state("Round", round)
                 self.__update_tournament_state("Order", order)
                 print("\n------\nROUND : " + str(round))
-                # Play starting from the "bottom" of the order
+                # Reverse order every tound to balance the tournament with odd number of players
+                order.reverse()
+                
                 match = 0
                 while(len(order) - 1 > match):
                     time.sleep(0.5)
