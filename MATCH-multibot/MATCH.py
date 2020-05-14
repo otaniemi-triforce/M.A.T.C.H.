@@ -527,13 +527,16 @@ class match_system():
 
                 # While the all-time scores are shown, reset the system state
                 
+                # Reset the previous state, in case someone tries to register before idle loop executes 
+                previous_state = ""
+                
                 # Change state
                 self.lock.acquire()
                 self.state = IDLE
                 self.lock.release()
-
-                # Wait for the all-time highscores 
-                time.sleep(RESULT_HOLDTIME - 4)
+                
+                # Wait for the all-time highscores (Kinda pointless, might as well move ahead)
+                # time.sleep(RESULT_HOLDTIME - 4)
                 
                 # And back to idle/registration part of the loop...
                 
