@@ -8,6 +8,7 @@ import os
 import signal
 import math
 import subprocess
+import win32gui,win32api,win32con
 
 logfile = "mugen.log"               # Path to log file to monitor
 charfolder = "chars"                # Chars folder
@@ -22,7 +23,7 @@ UP = 'w'            # Button to press to move up
 DOWN = 's'          # Button to press to move down
 
 ROUNDS = 2          # Rounds won required to win the match
-HOLDTIME = 0.06     # Time to hold r button
+HOLDTIME = 0.1     # Time to hold r button
 debug = True        # Enable debug prints
 
 
@@ -50,12 +51,12 @@ class MugenOperator():
         self.player1_chars = []
         self.player2_chars = []
         self.rwm = ReadWriteMemory()
-        self.output_keyboard = Controller()
         self.char1 = -1
         self.char2 = -1
         self.winner = -1
         self.index = 0
         self.p = None
+        self.window = None
         self.max_id = self.check_characterlist()  # index of last char
         print("MUGEN OPERATOR STARTED. Number of characters detected: "+str(self.max_id + 1))
         self.lastrow = self.calculate_wanted_point(self.max_id)
@@ -66,6 +67,7 @@ class MugenOperator():
         if(kill and self.p != None):
             try:
                 os.kill(self.p.pid, signal.SIGTERM)
+                self.debug("MUGEN killed.")
             except PermissionError:
                 self.debug("Tried to kill MUGEN, but it seems to be already dead.")
                 pass
@@ -87,9 +89,10 @@ class MugenOperator():
             self.index = len(f.readlines())-1
             f.close()
         processloaded = False
-        while not processloaded:
+        while not processloaded or self.p == None or self.window == None:
             try:
                 self.p = self.rwm.get_process_by_name(PROCESS_NAME)
+                self.window = win32gui.FindWindow(None,"M.U.G.E.N")
                 self.p.open()
                 processloaded = True
             except:
@@ -155,7 +158,11 @@ class MugenOperator():
             self.winner = PLAYER1
         elif(p2wins == ROUNDS):                     # Player 2 wins
             self.winner = PLAYER2
-
+    
+    # Set cursor to where it needs to be
+    def set_cursor_position(self,position):
+        self.p.write(self.p.get_pointer(THREADSTACK0, [0x916]),position[0])
+        self.p.write(self.p.get_pointer(THREADSTACK0, [0x917]),position[1])
 
     # Scan the log file and do operations based on lines there
     def scanlines(self):        
@@ -258,6 +265,11 @@ class MugenOperator():
 
     def select_char(self, charnum, player):
         pos = self.calculate_wanted_point(charnum)
+        ### WORK IN PROGRESS ###
+#        self.set_cursor_position(pos)
+#        self.press(OK,1)
+#        return
+        ### END OF WIP ###
     # Player 1
         if(player == PLAYER1):
             if(self.player1_cursor[1] == self.lastrow):  # Move up to a full row
@@ -326,13 +338,12 @@ class MugenOperator():
 
     # Presses a button n times
     def press(self, button, times):
-        for i in range(times):
-            self.output_keyboard.press(button)
-            sleep(HOLDTIME)
-            self.output_keyboard.release(button)
-    
+        win32api.SendMessage(self.window, win32con.WM_KEYDOWN, ord(button.upper()), 1)
+        sleep(HOLDTIME)
+        win32api.SendMessage(self.window, win32con.WM_KEYUP, ord(button.upper()), 1)
+
     # Checks the select file, returns ID of last character, and writes list of chars to file if params true
-    def check_characterlist(self, write_to_file = False, includepath = False):
+    def check_characterlist(self, write_to_file = True, includepath = True):
         f = open(selectfile,'r')
         lines = f.readlines()
         f.close()
@@ -377,9 +388,7 @@ class MugenOperator():
 
     # Returns the number of winning player (1 or 2), -1 if no match has ended since last scan, 0 if draw (not sure when that would happen) 
     def scan(self):
-#        oldstate = self.state
         self.scanlines()
-#        if(oldstate != self.state or (self.state == SELECT_STATE and oldstate == SELECT_STATE)):    # Has Game state changed?
         if(self.state == MENU_STATE):
             self.press(OK,1)
             sleep(1)    # Ensures that mugen has time to move to a new state before next scan
@@ -397,46 +406,3 @@ class MugenOperator():
         ret = self.winner
         self.winner = -1
         return ret
-'''        
-# FOR DEBUG PURPOSES, KEEP COMMENTED FOR ACTUAL USE
-def main():
-    operator = MugenOperator()
-    p1 = [23,176,37,555]
-    p2 = [14,67,234,987]
-    win = -1
-    idlecounter1 = 10
-    idlecounter2 = 15
-    print("STARTING")
-    while(1):
-        if(operator.are_you_still_there()):
-            print("Still alive, state: "+str(operator.get_state())+", queue lengths: "+str(operator.get_queue_size(1))+"-"+str(operator.get_queue_size(2))+", idle: "+str(idlecounter1)+"-"+str(idlecounter2))
-        else:
-            print("MUGEN is dead, abandon all hope.")
-
-        win = operator.scan()
-        if(win == -1):
-            pass
-        if(win == PLAYER1):
-            print("PLAYER 1 WON")
-        if(win == PLAYER2):
-            print("PLAYER 2 WON")
-        if(win == 0):
-            print("DRAW, HOW LAME")
-            
-        if(operator.get_queue_size(1) == 0 and len(p1) > 0 and operator.get_state() == SELECT_STATE):
-            idlecounter1 -= 1
-            if(idlecounter1 < 0):
-                print("PIM")
-                print(operator.add_character(p1.pop(0), PLAYER1))
-                idlecounter1 = 10
-        if(operator.get_queue_size(2) == 0 and len(p2) > 0 and operator.get_state() == SELECT_STATE):
-            idlecounter2 -= 1
-            if(idlecounter2 < 0):
-                print("POM")
-                print(operator.add_character(p2.pop(0), PLAYER2))
-                idlecounter2 = 15
-        sleep(1)
-        
-if __name__ == "__main__":
-    main()
-'''   
