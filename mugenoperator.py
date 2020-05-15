@@ -1,7 +1,7 @@
 # This file should be in the same folder as mugen.exe to work properly
 
-from pynput.keyboard import Controller
-from pynput.keyboard import Key
+#from pynput.keyboard import Controller
+#from pynput.keyboard import Key
 from time import sleep
 from ReadWriteMemory import ReadWriteMemory
 import os
@@ -56,7 +56,7 @@ class MugenOperator():
         self.winner = -1
         self.index = 0
         self.p = None
-        self.window = None
+        self.window = 0
         self.max_id = self.check_characterlist()  # index of last char
         print("MUGEN OPERATOR STARTED. Number of characters detected: "+str(self.max_id + 1))
         self.lastrow = self.calculate_wanted_point(self.max_id)
@@ -89,7 +89,7 @@ class MugenOperator():
             self.index = len(f.readlines())-1
             f.close()
         processloaded = False
-        while not processloaded or self.p == None or self.window == None:
+        while not processloaded or self.p == None or self.window == 0:
             try:
                 self.p = self.rwm.get_process_by_name(PROCESS_NAME)
                 self.window = win32gui.FindWindow(None,"M.U.G.E.N")
