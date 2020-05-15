@@ -487,7 +487,7 @@ class match_system():
                 results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 2)
                 
                 # Send update to Discord
-                ds_client.queue_message("Division: " + str(self.ongoing_div - 1) + " finished." )
+                ds_client.queue_message("Division: " + str(self.ongoing_div) + " finished." )
                 # Show results HTML
                 self.show_division_results(results_dict, self.ongoing_div)
                 
