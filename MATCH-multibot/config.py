@@ -12,7 +12,7 @@ TWITCH_PREFIX = '#'
 # Mugenoperator configuration. Use these to adjust the file locations, behaviour and buttons the operator uses.
 
 # Select.def location. If you use themes, this needs to be modified to point to select.def within theme folder (data/<THEME_NAME>/select.def)
-SELECTFILE = "data/db/select.def"
+SELECTFILE = "data/select.def"
 
 LOGFILE = "mugen.log"               # Path to log file to monitor
 CHARFOLDER = "chars"                # Chars folder
