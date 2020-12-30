@@ -12,7 +12,7 @@ import win32gui,win32api,win32con
 
 logfile = "mugen.log"               # Path to log file to monitor
 charfolder = "chars"                # Chars folder
-selectfile = "data/db/select.def"   # Select file path
+selectfile = "data/select.def"      # Select file path. Modify this if another location is used.
 charfile = "charlist.txt"           # File to write list of characters to
 badcharfile = "badchar.txt"         # Path to a file containing list of bad characters
 
