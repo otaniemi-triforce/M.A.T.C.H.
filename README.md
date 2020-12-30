@@ -22,7 +22,7 @@ If you have this, then minimal installation is to:
  * Download this system along with Mugenoperator from MUGEN-tournament (https://github.com/otaniemi-triforce/MUGEN-tournament)
  * Choose whether you wish to have the plain Discord version or the more advanced Discord/Twitch Multibot-version.
  * Create accounts for Discord/Twitch bots. Instructions to these are available from those services.
- * Copy the contents of the selected version to the Mugen root and setup the account info to config.py (directly to the MATCH in Discord option)
+ * Copy the contents of the selected version to the Mugen root and setup the account info to config.py (directly to the MATCH in Discord option). If necessary, adjust the location of select.def in mugenoperator.py.
  * Run MATCH.py and hope for the best
  
  * If everything worked, the system should launch Mugen and connect the bots to defined channels.
