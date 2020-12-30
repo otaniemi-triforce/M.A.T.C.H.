@@ -9,15 +9,36 @@ TWITCH_CLIENT_ID = ''
 TWITCH_NICK = ''
 TWITCH_PREFIX = '#'
 
+# Mugenoperator configuration. Use these to adjust the file locations, behaviour and buttons the operator uses.
+
+# Select.def location. If you use themes, this needs to be modified to point to select.def within theme folder (data/<THEME_NAME>/select.def)
+SELECTFILE = "data/db/select.def"
+
+LOGFILE = "mugen.log"               # Path to log file to monitor
+CHARFOLDER = "chars"                # Chars folder
+CHARFILE = "charlist.txt"           # File to write list of characters to
+BADCHARFILE = "badchar.txt"         # Path to a file containing list of bad characters
+
+OK = "r"            # Button to press for selecting
+NEXT = 'd'          # Button to press to move right
+PREV = 'a'          # Button to press to move left
+UP = 'w'            # Button to press to move up
+DOWN = 's'          # Button to press to move down
+
+ROUNDS = 2          # Rounds won required to win the match
+HOLDTIME = 0.1      # Button down AND release time in seconds. Button press will always be HOLDTIME * 2. Low values can cause presses to be missed.  
+DEBUG = True        # Enable debug prints for mugenoperator
+
+
 # Number of time the same offset will be used
 OFFSET_COUNT = 5
 
 # Set this to prevent multiple registrations with same name
 # Note that this will make the scores rather interesting
-NO_DUPLICATES = 1
+NO_DUPLICATES = 0
 
 # Initial time and warning intervals
-TIMER_INTERVALS = [180,120,60,30,15]
+TIMER_INTERVALS = [18,12,6,3]
 
 # Time to hold the results screens visible
 RESULT_HOLDTIME = 15
@@ -38,3 +59,4 @@ IDLE = 0
 REGISTRATION = 1
 RUNNING = 2
 ERROR = -1
+
