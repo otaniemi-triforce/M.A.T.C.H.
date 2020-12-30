@@ -23,7 +23,9 @@ If you have this, then minimal installation is to:
     * The plain discord version of the system is basically deprecated at this point. 
  * Create accounts for Discord/Twitch bots. Instructions to these are available from those services.
  * Copy the contents of the selected version to the Mugen root
- * Setup the relevant account info and modify the location of the select.def to match your setup.
+ * Modify the included config.py file. 
+    * Setup the relevant account info for the bots
+    * Modify the location of the select.def to match your setup.
     * It is recommended to briefly look through the different settings in the config file and adjust either the config or MUGEN accordingly.
  
  After this you need to modify the MUGEN to work with the mugenoperator. Basically the operator expects that the MUGEN menu should contain watch mode as first option. To do this, (backup and) modify the used system.def in the following manner:
