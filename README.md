@@ -19,7 +19,7 @@ If you have this, then minimal installation is to:
  * Install python 3.9
  * From pip install:
     * twitchio, discord.py, ReadWriteMemory, pywin32 - depending on what kind of bots you want
- * ~~Choose whether you wish to have the plain Discord version or the more advanced Discord/Twitch Multibot-version. ~~
+ *  ~~Choose whether you wish to have the plain Discord version or the more advanced Discord/Twitch Multibot-version.~~
     * The plain discord version of the system is basically deprecated at this point. 
  * Create accounts for Discord/Twitch bots. Instructions to these are available from those services.
  * Copy the contents of the selected version to the Mugen root
