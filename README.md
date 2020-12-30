@@ -16,16 +16,34 @@ Well, for starters you need a machine that can run Mugen, this relatively lightw
 
 If you have this, then minimal installation is to:
  * Install the Mugen with some set of characters
- * Install python3
+ * Install python 3.9
  * From pip install:
-    * twitchio, discord.py - depending on what kind of bots you want
- * Download this system along with Mugenoperator from MUGEN-tournament (https://github.com/otaniemi-triforce/MUGEN-tournament)
- * Choose whether you wish to have the plain Discord version or the more advanced Discord/Twitch Multibot-version.
+    * twitchio, discord.py, ReadWriteMemory, pywin32 - depending on what kind of bots you want
+ * ~~Choose whether you wish to have the plain Discord version or the more advanced Discord/Twitch Multibot-version. ~~
+    * The plain discord version of the system is basically deprecated at this point. 
  * Create accounts for Discord/Twitch bots. Instructions to these are available from those services.
- * Copy the contents of the selected version to the Mugen root and setup the account info to config.py (directly to the MATCH in Discord option). If necessary, adjust the location of select.def in mugenoperator.py.
- * Run MATCH.py and hope for the best
+ * Copy the contents of the selected version to the Mugen root
+ * Setup the relevant account info and modify the location of the select.def to match your setup.
+    * It is recommended to briefly look through the different settings in the config file and adjust either the config or MUGEN accordingly.
  
- * If everything worked, the system should launch Mugen and connect the bots to defined channels.
- * Test the system locally and then put up a stream and let people in.
+ After this you need to modify the MUGEN to work with the mugenoperator. Basically the operator expects that the MUGEN menu should contain watch mode as first option. To do this, (backup and) modify the used system.def in the following manner:
+ In section: ```[Title Info]``` modify the menu lines to following:
+```
+menu.itemname.watch = "WATCH"
+menu.itemname.arcade = ""
+menu.itemname.versus = ""
+menu.itemname.teamarcade = ""
+menu.itemname.teamversus = ""
+menu.itemname.teamcoop = ""
+menu.itemname.survival = ""
+menu.itemname.survivalcoop = ""
+menu.itemname.training = ""
+menu.itemname.options = "OPTION"
+menu.itemname.exit = ""
+```
+ 
+After all this, you should be able to run MATCH.py and hope for the best.
+ 
+If everything worked, the system should launch Mugen and connect the bots to defined channels. Test the system locally and then put up a stream and let people in.
  
  Notice: Given the nature of the Mugen as "stable" platform under certain conditions (hundreds of random characters with varying quality), this system will probably crash on you. The Mugenoperator used in this system will try to get the system up again and will probably succeed. The loading time of Mugen is a problem though and having a SSD is a really good idea to reduce the loading time of the game when it crashes. 
