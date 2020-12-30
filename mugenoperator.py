@@ -9,22 +9,7 @@ import signal
 import math
 import subprocess
 import win32gui,win32api,win32con
-
-logfile = "mugen.log"               # Path to log file to monitor
-charfolder = "chars"                # Chars folder
-selectfile = "data/select.def"      # Select file path. Modify this if another location is used.
-charfile = "charlist.txt"           # File to write list of characters to
-badcharfile = "badchar.txt"         # Path to a file containing list of bad characters
-
-OK = "r"            # Button to press for selecting
-NEXT = 'd'          # Button to press to move right
-PREV = 'a'          # Button to press to move left
-UP = 'w'            # Button to press to move up
-DOWN = 's'          # Button to press to move down
-
-ROUNDS = 2          # Rounds won required to win the match
-HOLDTIME = 0.1     # Time to hold r button
-debug = True        # Enable debug prints
+from config import *
 
 
 # Memory reader info
@@ -76,8 +61,8 @@ class MugenOperator():
             logpurged = False
             while not logpurged:
                 try:
-                    os.remove(logfile)
-                    open(logfile, 'w').close()
+                    os.remove(LOGFILE)
+                    open(LOGFILE, 'w').close()
                     logpurged = True
                 except PermissionError: # Someone is still holding the file, give it a sec
                     sleep(1)
@@ -85,7 +70,7 @@ class MugenOperator():
             self.index = 0
             os.startfile(PROCESS_NAME)  # Start MUGEN
         else:   # MUGEN is running, set current index to end of current logfile
-            f = open(logfile)
+            f = open(LOGFILE)
             self.index = len(f.readlines())-1
             f.close()
         processloaded = False
@@ -166,7 +151,7 @@ class MugenOperator():
 
     # Scan the log file and do operations based on lines there
     def scanlines(self):        
-        f = open(logfile,'r', encoding="utf8", errors="replace")   # Open logfile for reading
+        f = open(LOGFILE,'r', encoding="utf8", errors="replace")   # Open logfile for reading
         lines = f.readlines()           # Read all lines to memory
         f.close()                       # Close the file for now   
 
@@ -225,7 +210,7 @@ class MugenOperator():
                 if(len(line.split("Character")) == 2):
                     self.winner = int(self.loadingchar==1)+1  # Mark the other player as winner
                     self.debug("ERROR: failed to load character for P"+str(self.loadingchar))
-                    bchar = open(badcharfile,'a')
+                    bchar = open(BADCHARFILE,'a')
                     bchar.write(line)
                     bchar.close()
                 # Something else
@@ -239,8 +224,7 @@ class MugenOperator():
                 return
 
     def debug(self, msg):
-        global debug
-        if(debug):
+        if(DEBUG):
             print(msg)
 
     # Memory based character load, memory addresses are machine specific! Not used in this version.
@@ -253,7 +237,6 @@ class MugenOperator():
             self.char1 = charnum
             if(not self.p.write(char1_ptr,charnum)): # Overwrite whatever was just accepted
                 debug("Failed to write P1 character!")
-
     # Player 2
         elif(player == PLAYER2):
             char2_ptr = self.p.get_pointer(THREADSTACK0, [0x1E30 + 0x10]) # Get pointer to the char variable in memory
@@ -344,11 +327,11 @@ class MugenOperator():
 
     # Checks the select file, returns ID of last character, and writes list of chars to file if params true
     def check_characterlist(self, write_to_file = True, includepath = True):
-        f = open(selectfile,'r')
+        f = open(SELECTFILE,'r')
         lines = f.readlines()
         f.close()
         if(write_to_file):
-            l = open(charfile,'w', encoding="utf8", errors="ignore")
+            l = open(CHARFILE,'w', encoding="utf8", errors="ignore")
         index = 0   # Index of next character found
         for line in lines:
             if(line.strip().startswith(";")): # Commented line
@@ -358,7 +341,7 @@ class MugenOperator():
             parts = line.split(",")[0].strip().split("/")
             if(len(parts) < 3): # Some other line, don't care
                 continue
-            charpath = charfolder
+            charpath = CHARFOLDER
             for part in parts:
                 charpath = os.path.join(charpath,part)
             if(not charpath.endswith(".def")):
