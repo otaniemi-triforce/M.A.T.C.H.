@@ -35,7 +35,13 @@ class match_system():
         self.register_messages = []
         self.division_complete = False
         
+        
         self.scoreboard = self.__read_scorefile(SCOREFILE)
+        if (USE_DISCORD):
+            self.ds_client = miyako_discord.MiyakoBotDiscord(self)
+        if (USE_TWITCH):
+            self.twch_client = miyako_twitch.MiyakoBotTwitch(self)
+        
         
         
     def check_mugen(self):
@@ -331,16 +337,17 @@ class match_system():
     ######################################################
     
     def main(self):
-        ds_client = miyako_discord.MiyakoBotDiscord(self)
-        twch_client = miyako_twitch.MiyakoBotTwitch(self)
         
-        main_thread = threading.Thread(target=self.main_loop, args=(ds_client, twch_client))
+        main_thread = threading.Thread(target=self.main_loop, args=())
         main_thread.start()
         
         loop = asyncio.get_event_loop()
-        loop.create_task(ds_client.start(DISCORD_TOKEN))
-        loop.create_task(twch_client.start())
-        loop.run_forever()
+        if (USE_DISCORD):
+            loop.create_task(self.ds_client.start(DISCORD_TOKEN))
+        if (USE_TWITCH):
+            loop.create_task(self.twch_client.start())
+        if (USE_TWITCH or USE_DISCORD):
+            loop.run_forever()
     
     
     
@@ -354,7 +361,7 @@ class match_system():
     #
     #
     
-    def main_loop(self, ds_client, twch_client):
+    def main_loop(self):
     
         # INIT
         
@@ -382,37 +389,45 @@ class match_system():
                     # Send message to clients. Twitch is needs the message in two parts
                     message = "Registration is now open for tournament with " + str(self.div) + " divisions.\nCharacter ID's 0-" + self.get_max_ID() + " are accepted.\n"
                     ds_message = "" + message
-                    # Send part 1 to Twitch
-                    twch_client.queue_message(message)
+                    if (USE_TWITCH):
+                        # Send part 1 to Twitch
+                        self.twch_client.queue_message(message)
                     
                     # Prepare the second part
                     message = ""
                     if self.offset_counter == 0:
                         message += "New character offset was created.\n"
                     message += "Current character offset will be used for " + self.get_offset_duration() + " matches.\n"
-                    # Send part 2 to Twitch
-                    twch_client.queue_message(message)
+                    if (USE_TWITCH):
+                        # Send part 2 to Twitch
+                        self.twch_client.queue_message(message)
 
-                    # Send both parts to Discord in one message
-                    ds_client.queue_message(ds_message + message)
+                    if (USE_DISCORD):
+                        # Send both parts to Discord in one message
+                        self.ds_client.queue_message(ds_message + message)
          
          
-            # Update the discord presence every 5 seconds
-            if delay % 5 == 0:
-                ds_client.set_presence(self.tournament_status())
+            if (USE_DISCORD):
+                # Update the discord presence every 5 seconds
+                if delay % 5 == 0:
+                    self.ds_client.set_presence(self.tournament_status())
                 
             # If any queued registrations exists, send them to all clients
             while self.register_messages:
                 msg = self.register_messages.pop(0)
-                ds_client.queue_message(msg)
-                twch_client.queue_message(msg)
+                if (USE_DISCORD):
+                    self.ds_client.queue_message(msg)
+                if (USE_TWITCH):
+                    self.twch_client.queue_message(msg)
 
             # Timer system
             if self.__timers_active():
                 for interval in TIMER_INTERVALS:
                     if self.__timer_count == interval:
-                        ds_client.queue_message(self.time_warning(interval)) # 60
-                        twch_client.queue_message(self.time_warning(interval))
+                        if (USE_DISCORD):
+                            self.ds_client.queue_message(self.time_warning(interval)) # 60
+                        if (USE_TWITCH):
+                            self.twch_client.queue_message(self.time_warning(interval))
                         self.update_file_text("Registration in progress. Tournament starting in " + str(interval), "info.html", 8)
                 self.__timer_count -= 1
 
@@ -439,8 +454,10 @@ class match_system():
                 self.__reset_timers()
                 
                 # Kickoff tournament
-                ds_client.queue_pic(TOURNAMENT_START_PIC, "Tournament started, finally we get the good bit")
-                twch_client.queue_message("Tournament started, finally some action.")
+                if (USE_DISCORD):
+                    self.ds_client.queue_pic(TOURNAMENT_START_PIC, "Tournament started, finally we get the good bit")
+                if (USE_TWITCH):
+                    self.twch_client.queue_message("Tournament started, finally some action.")
                 # Create new tournament thread
                 tour_t = threading.Thread(target=self.toursys.run_tournament , args=(self.players, self.div, self.mugen))
                 
@@ -453,11 +470,11 @@ class match_system():
                 while self.toursys.is_running():
                     # Check status
                     # Send new presence data to Discord bot and update info texts
-                    status = self.tournament_status()
-                    if delay == 5:
-                        ds_client.set_presence(status)
-                        delay = 0
-                    
+                    if (USE_DISCORD):
+                        if delay == 5:
+                            self.ds_client.set_presence(self.tournament_status())
+                            delay = 0
+                        
                     
                     # Check if we need to deliver division results
                     if self.division_complete:
@@ -468,7 +485,7 @@ class match_system():
                             results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 2)
                             
                             # Send update to Discord
-                            ds_client.queue_message("Division: " + str(self.ongoing_div - 1) + " finished." )
+                            self.ds_client.queue_message("Division: " + str(self.ongoing_div - 1) + " finished." )
                             # Show results HTML
                             self.show_division_results(results_dict, self.ongoing_div - 1)                        
                             
@@ -482,12 +499,15 @@ class match_system():
                 # Clear the info text
                 self.update_file_text("", "info.html", 1)
                 
-                # Update Discord presence and show division results:
-                ds_client.set_presence(self.tournament_status())
+                if (USE_DISCORD):
+                    # Update Discord presence and show division results:
+                    self.ds_client.set_presence(self.tournament_status())
                 results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 2)
                 
                 # Send update to Discord
-                ds_client.queue_message("Division: " + str(self.ongoing_div) + " finished." )
+                if (USE_DISCORD):
+                    self.ds_client.queue_message("Division: " + str(self.ongoing_div) + " finished." )
+                
                 # Show results HTML
                 self.show_division_results(results_dict, self.ongoing_div)
                 
@@ -495,11 +515,15 @@ class match_system():
                 print("M.A.T.C.H.: Tournament ended")
                 
                 # Send tournament end messages
-                twch_client.queue_message("Tournament finished.")
-                ds_client.queue_pic(PICS[random.randint(0,len(PICS) - 1)], "Ah that was nice.")
+                if (USE_TWITCH):
+                    self.twch_client.queue_message("Tournament finished.")
+                if (USE_DISCORD):
+                    self.ds_client.queue_pic(PICS[random.randint(0,len(PICS) - 1)], "Ah that was nice.")
                 # Create results
                 results, results_dict = self.toursys.final_rankings(self.players, self.div)
-                ds_client.queue_message(results)
+                
+                if (USE_DISCORD):
+                    self.ds_client.queue_message(results)
                 
                 # Add scores to highscores and write new scorefile
                 self.__update_scoreboard(self.players)
