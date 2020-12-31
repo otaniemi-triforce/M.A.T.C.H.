@@ -1,13 +1,18 @@
-# Discord token and guild(Channel) name
+# Discord bot settings
 
+USE_DISCORD = 0 # Enable DISCORD bot
 DISCORD_TOKEN=""
 DISCORD_GUILD=""
 
+# Twitch bot settings
+
+USE_TWITCH = 0 # Enable Twitch bot
 TWITCH_CHANNEL = ''
 TWITCH_IRC_TOKEN = ''
 TWITCH_CLIENT_ID = ''
 TWITCH_NICK = ''
 TWITCH_PREFIX = '#'
+
 
 # Mugenoperator configuration. Use these to adjust the file locations, behaviour and buttons the operator uses.
 
