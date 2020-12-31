@@ -18,13 +18,14 @@ If you have this, then minimal installation is to:
  * Install the Mugen with some set of characters
  * Install Python 3.8.6 (at the time of the writing, discord.py has issues with Python 3.9)
  * From pip install:
-    * twitchio, discord.py, ReadWriteMemory, pywin32
+    * ```ReadWriteMemory, pywin32```
+    * Addionally: ```twitchio``` and/or ```discord.py```  
  *  ~~Choose whether you wish to have the plain Discord version or the more advanced Discord/Twitch Multibot-version.~~
     * The plain discord version of the system is basically deprecated at this point. 
- * Create accounts for Discord/Twitch bots. Instructions to these are available from those services.
+ * Create accounts for Discord and/or Twitch bots. Instructions to these are available from those services.
  * Copy the contents of the selected version to the Mugen root
  * Modify the included config.py file. 
-    * Setup the relevant account info for the bots
+    * Setup the relevant account info for the bots and enable them.
     * Modify the location of the select.def to match your setup.
     * It is recommended to briefly look through the different settings in the config file and adjust either the config or MUGEN accordingly.
  * Do the adjustments to system.def described in the following section
