@@ -5,12 +5,12 @@ import random
 import mugenoperator as mo
 import asyncio
 
+from config import *
+
 if (USE_DISCORD):
     import miyako_discord
 if (USE_TWITCH):
     import miyako_twitch
-
-from config import *
 
 
 # Watchdog heartbeat delay rounds
