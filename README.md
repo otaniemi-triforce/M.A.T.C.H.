@@ -27,6 +27,7 @@ If you have this, then minimal installation is to:
  * Modify the included config.py file. 
     * Setup the relevant account info for the bots and enable them.
     * Modify the location of the select.def to match your setup.
+    * Modify the character columns and slots before them to match your setup.
     * It is recommended to briefly look through the different settings in the config file and adjust either the config or MUGEN accordingly.
  * Do the adjustments to system.def described in the following section
  * After all this, you should be able to run MATCH.py and hope for the best.
@@ -54,29 +55,10 @@ menu.itemname.training = ""
 menu.itemname.options = "OPTION"
 menu.itemname.exit = ""
 ```
-Second required modification in the system.def is to the ```[Select Info]``` section. This is bit more tricky as in this will probably break the visuals of the MUGEN selection screen, so some manual adjustments are probably required.
 
-Begin by modifying the matching lines in the beginning of the section to following:
-```
-rows = 39   ; 37
-columns = 66  ; 67
-wrapping = 1              ; 1 to let cursor wrap around
-pos = 1,90                ; Position to draw to
-showemptyboxes = 0        ; 1 to show empty boxes
-moveoveremptyboxes = 0    ; 1 to allow cursor to move over empty boxes
-cell.size = 28,28         ; x,y size of each cell (in pixels)
-cell.spacing = 1          ; Space between each cell
-```
-This will set the following required features:
-   * Number of rows and columns, that the operator uses to select the character. Having any other number in these, especially in columns will cause the system to select incorrect characters
-   * Allows wrapping, more predictable behavior
-   * Prevents the cursor from entering empty boxes, which in turn prevents the system from getting stuck
-
-The rest of the values basically try to fit all the 2574 boxes into 1980x1080 resolution screen and this is where you probably need to do some adjustments.
-Adjusting the cell.size and cell.spacing will allow to fit more or less character boxes to the screen and pos defines the position of the first square.
-
-The downside of all this is the system will probably look horrible without extensive editing. We are looking into releasing our modified themes to go with this or adding features to modify the selection system otherwise.
-
+Character grid
+----
+The mugenoperator assumes that all your characters are in a rectangular grid with no empty spaces in it. To ensure this, make sure your select.def isn't inserting any empty cells, and set showemptyboxes off in the system.def in the ```[Select Info]``` section.
 
  
 Some additional notes
