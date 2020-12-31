@@ -325,20 +325,32 @@ class MugenOperator():
                 continue
             if(line.strip().startswith("[ExtraStages]")): # End of character list
                 break
-                
+            if(len(line.strip()) == 0): # Empty line, no neet to process further
+                continue
+
             # Make sure every line has the same directory syntax (Mugen accepts both \ AND /)
             line = line.replace('/', '\\')
+            
             # Split the line. First part should be the directory so split that 
             parts = line.split(",")[0].strip().split("\\")
             
-            if(len(parts) < 3): # Some other line, don't care
-                continue
             charpath = CHARFOLDER
             for part in parts:
                 charpath = os.path.join(charpath,part)
-            if(not charpath.endswith(".def")):
-                charpath = charpath + ".def"
-            # Try opening the character file, if FileNotFoundError raised then file is missing and can be skipped
+            
+            if not charpath.endswith(".def"):
+                if os.path.exists(charpath + ".def"):
+                    charpath = charpath + ".def"
+                else:
+                    if os.path.exists(charpath + "\\" + parts[-1] + ".def"):
+                        charpath = charpath + "\\" + parts[-1] + ".def"
+                    else:
+                        continue # Not found, proceed to next line
+            elif not os.path.exists(charpath):
+                continue # No such file
+
+            print(charpath)  
+            # Try opening the character file, if error, skip it and hope it doesn't break anything
             try:
                 cf = open(charpath,'r', encoding="utf8", errors="replace")
                 clines = cf.readlines()
@@ -357,7 +369,7 @@ class MugenOperator():
                 
                 # Character successfully loaded, increment index
                 index += 1
-            except FileNotFoundError:
+            except:
                 pass
         if(write_to_file):
             l.close()
