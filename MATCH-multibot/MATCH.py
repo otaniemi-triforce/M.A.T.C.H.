@@ -1,14 +1,17 @@
 import threading
 import time
-import miyako_discord
-import miyako_twitch
 import tournament as tournament
 import random
 import mugenoperator as mo
 import asyncio
 
+if (USE_DISCORD):
+    import miyako_discord
+if (USE_TWITCH):
+    import miyako_twitch
 
 from config import *
+
 
 # Watchdog heartbeat delay rounds
 DELAY = 60
