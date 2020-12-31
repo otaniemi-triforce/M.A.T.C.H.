@@ -337,8 +337,13 @@ class MugenOperator():
             if(line.strip().startswith(";")): # Commented line
                 continue
             if(line.strip().startswith("[ExtraStages]")): # End of character list
-                break    
-            parts = line.split(",")[0].strip().split("/")
+                break
+                
+            # Make sure every line has the same directory syntax (Mugen accepts both \ AND /)
+            line = line.replace('/', '\\')
+            # Split the line. First part should be the directory so split that 
+            parts = line.split(",")[0].strip().split("\\")
+            
             if(len(parts) < 3): # Some other line, don't care
                 continue
             charpath = CHARFOLDER
@@ -362,8 +367,10 @@ class MugenOperator():
                     msg = str(index) + "," + str(charname)+"\n"
                 if(write_to_file):
                     l.write(msg)
+                
             except FileNotFoundError:
                 pass
+            # Character successfully loaded, increment index
             index += 1
         if(write_to_file):
             l.close()
