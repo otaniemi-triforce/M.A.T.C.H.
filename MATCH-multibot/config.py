@@ -37,8 +37,8 @@ OFFSET_COUNT = 5
 # Note that this will make the scores rather interesting
 NO_DUPLICATES = 0
 
-# Initial time and warning intervals
-TIMER_INTERVALS = [18,12,6,3]
+# Initial time and warning intervals in seconds. For testing purposes set these to smaller values. 
+TIMER_INTERVALS = [180,120,60,30,15]
 
 # Time to hold the results screens visible
 RESULT_HOLDTIME = 15
