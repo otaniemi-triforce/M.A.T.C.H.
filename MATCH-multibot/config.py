@@ -18,6 +18,8 @@ TWITCH_PREFIX = '#'
 
 # Select.def location. If you use themes, this needs to be modified to point to select.def within theme folder (data/<THEME_NAME>/select.def)
 SELECTFILE = "data/select.def"
+CHARCOLS = 10           # Columns in the character grid
+CHARBEFORE = 2          # The number of objects, ie randomselects, before the beginning of characters the choose from
 
 LOGFILE = "mugen.log"               # Path to log file to monitor
 CHARFOLDER = "chars"                # Chars folder

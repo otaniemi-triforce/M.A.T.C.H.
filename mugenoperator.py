@@ -44,7 +44,7 @@ class MugenOperator():
         self.window = 0
         self.max_id = self.check_characterlist()  # index of last char
         print("MUGEN OPERATOR STARTED. Number of characters detected: "+str(self.max_id + 1))
-        self.lastrow = self.calculate_wanted_point(self.max_id)
+        self.lastrow = self.calculate_wanted_point(self.max_id)[1]
         self.reset()
     
     # Resets variables. Set kill = True to also kill MUGEN.
@@ -248,11 +248,6 @@ class MugenOperator():
 
     def select_char(self, charnum, player):
         pos = self.calculate_wanted_point(charnum)
-        ### WORK IN PROGRESS ###
-#        self.set_cursor_position(pos)
-#        self.press(OK,1)
-#        return
-        ### END OF WIP ###
     # Player 1
         if(player == PLAYER1):
             if(self.player1_cursor[1] == self.lastrow):  # Move up to a full row
@@ -307,20 +302,12 @@ class MugenOperator():
 
     # Calculate the wanted position for the cursor
     def calculate_wanted_point(self, charnum):
-        if(charnum > 56): # Not on first row
-            col = ((charnum - 56)%66)
-            row = math.floor((charnum - 56)/66)+1
-            return [col,row] 
-        else:
-            col = charnum + 2
-            if(charnum > 16 and charnum < 37):
-                col += 4
-            elif(charnum > 36):
-                col += 8
-        return [col, 0]
+        col = (charnum+CHARBEFORE) % CHARCOLS
+        row = math.floor((charnum+CHARBEFORE)/CHARCOLS)
+        return [col,row] 
 
     # Presses a button n times
-    def press(self, button, times):
+    def press(self, button, times=1):
         win32api.SendMessage(self.window, win32con.WM_KEYDOWN, ord(button.upper()), 1)
         sleep(HOLDTIME)
         win32api.SendMessage(self.window, win32con.WM_KEYUP, ord(button.upper()), 1)
@@ -368,10 +355,10 @@ class MugenOperator():
                 if(write_to_file):
                     l.write(msg)
                 
+                # Character successfully loaded, increment index
+                index += 1
             except FileNotFoundError:
                 pass
-            # Character successfully loaded, increment index
-            index += 1
         if(write_to_file):
             l.close()
         return index - 1
