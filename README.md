@@ -124,8 +124,8 @@ The twitch bot does not report results or status, as it is assumed that this inf
 
 HTML status/score file
 ----
-The M.A.T.C.H. outputs match data and scores to a simple HTML-file. This is intented to be used with OBS to present data about the ongoing match and scores, but can be used for other purposes as well. The style of the HTML can be modified via included ``style.css`` file.
-Currently, support for easily modifying the creation or the location of this file is very limited as this has not been very high priority functionality. We may look into improving this later.
+The M.A.T.C.H. outputs match data and scores to two simple, auto-updating HTML-files: ``results.html`` and ``info.html``. These are intented to be used with OBS to present data about the ongoing match and scores, but can be used for other purposes as well. The style of the HTML-files can be modified via included ``style.css`` file.
+Currently, support for easily modifying the creation, content or the location of this file is very limited as this has not been very high priority functionality. We may look into improving this later.
 
 
 TODO / Caveats
