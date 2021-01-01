@@ -74,9 +74,12 @@ Creating tournament with 1 divisions -> This is what most consider to be a typic
 
 Creating tournament with 5 divisions -> This will create a tournament with 5 divisions. Each player registers 5 individual characters that will fight in their respective divisions. With eight players, this means 7 * 5 = 35 matches will be played.
 
-From above one can easily see that tournament with several divisions can take considerable time.
+
+From the above examples one can easily see that tournament with several divisions can take considerable time...especially so if you have many players.
+
 
 (*) With 2500 characters, we could figure out the offset value with reasonable accuracy within 3-4 tournaments if we put our minds to it. 
+
 
 Using the Discord bot
 ----
