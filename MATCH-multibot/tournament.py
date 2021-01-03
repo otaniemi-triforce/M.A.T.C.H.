@@ -8,15 +8,26 @@ import mugenoperator as mo
 WINNER1 = 1
 WINNER2 = 2
 POW2 = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
+MSGNAME = "Tournament control"
 
 
 class Tournament:
-    def __init__(self):
+    def __init__(self, matchsys):
         self.running = 0
         self.tournament_state = {"Div": 0, "Round": 1, "Match": 1, "Fight": [], "Order" : []}
+        self.matchsys = matchsys
+
+
+
+    def __consoleprint(self, msg):
+        self.matchsys.console_print(MSGNAME, msg)
+
+
 
     def is_running(self):
         return self.running
+
+
     
     # Update the state of the running tournament
     def __update_tournament_state(self, id, value):
@@ -24,18 +35,20 @@ class Tournament:
             if self.running:
                 self.tournament_state[id] = value
         except KeyError:
-            print("Incorrect key")
+            self.__consoleprint("State update failed, incorrect key")
             
     def get_state(self, id):
         try:
             if self.running:
                 return self.tournament_state[id]
         except KeyError:
-            print("Incorrect key")
+            self.__consoleprint("State error, incorrect key")
+
+
 
     # Prints out the ranking of the given division
     def rankings(self, players, division):
-        print("Rankings being generated for: " + str(division + 1))
+        self.__consoleprint("Rankings being generated for: " + str(division + 1))
         score_dict = {}
      
         count = 32
@@ -52,10 +65,12 @@ class Tournament:
             count -= 1
         return message, score_dict
 
+
+
     def final_rankings(self, players, div):
         score = []
         score_dict = {}
-        print("Final rankings")
+        self.__consoleprint("Final rankings")
         tmp = 0
         for player in players:
             score.append(0)
@@ -77,15 +92,19 @@ class Tournament:
             count -= 1
         return message, score_dict
 
+
+
     def player_order(self, order):
         message = "Player order for next round:"
         for i in order:
             message += players[i]["Name"] + "\n"
         return message
 
+
+
     def run_tournament(self, players, divisions, mugen):
         self.running = 1
-        print("Tournament Thread starting!")
+        self.__consoleprint("Starting")
         self.__update_tournament_state("Div", 0)
         self.__update_tournament_state("Round", 1)
         self.__update_tournament_state("Match", 1)
@@ -101,7 +120,9 @@ class Tournament:
                 
         self.__update_tournament_state("Div", divisions + 1)
         self.running = 0
-        print ("TOURNAMENT THREAD FINISHED")
+        self.__consoleprint ("Closing")
+
+
         
     # Play match function currently simulates a battle for the tournament system
     # This should be implemented by game control side of things.
@@ -116,28 +137,28 @@ class Tournament:
             time.sleep(0.5)
             mugen.scan()
             time.sleep(0.5)
-            print("TOURNAMENT: Checking Mugen state")
+            self.__consoleprint("Checking Mugen state")
             if mugen.get_state() == mo.DEAD_STATE:
-                print(" ...Mugen was dead from the get go, waiting for reset")
+                self.__consoleprint(" ...Mugen was dead from the get go, waiting for reset")
                 mugen.reset(True)
                 time.sleep(10)
             if mugen.get_state() == mo.LOADING_STATE:
-                print(" ...Mugen is still loading")
+                self.__consoleprint(" ...Mugen is still loading")
                 time.sleep(10)
             else:
                 if mugen.get_state() == mo.MENU_STATE:
-                    print(" ...Mugen in main menu")
+                    self.__consoleprint(" ...Mugen in main menu")
                     mugen.scan()
                 if mugen.get_state() == mo.SELECT_STATE:
-                    print(" ...Mugen in select screen")
+                    self.__consoleprint(" ...Mugen in select screen")
                     #while mugen.get_queue_size(mo.PLAYER1) != 0 and mugen.get_queue_size(mo.PLAYER2) != 0:
                     #    mugen.scan()
                     
-                    print("TOURNAMENT: Inserting characters")
-                    print(" ..CHAR ID1: " + str(player1["Characters"][division]))
+                    self.__consoleprint("Inserting characters")
+                    self.__consoleprint("  ...Player 1: " + str(player1["Characters"][division]))
                     mugen.add_character(player1["Characters"][division], mo.PLAYER1)
                     
-                    print(" ..CHAR ID2: " + str(player2["Characters"][division]))
+                    self.__consoleprint("  ...Player 2: " + str(player2["Characters"][division]))
                     mugen.add_character(player2["Characters"][division], mo.PLAYER2)
 
                     # Command operator to insert characters
@@ -149,18 +170,19 @@ class Tournament:
                         mugen.scan()
 
                     # Wait until fight is finished. This will also fail if Mugen is dead
-                    print("TOURNAMENT: Match started, waiting for result")
+                    self.__consoleprint("Match started, waiting for result")
                     while(mugen.get_state() == mo.FIGHT_STATE):
                         winner = mugen.scan()
                         if(winner != -1):
                             break
                         time.sleep(2)
                     if winner != -1:
-                        print("TOURNAMENT: Match finished")
+                        self.__consoleprint("Match finished")
                     else:
-                        print("TOURNAMENT: Inconclusive result, probably Mugen failure. Re-Match")
+                        self.__consoleprint("Match inconclusive, probably Mugen failure. Re-Match")
         return winner
         
+
         
     def play_division(self, players, division, mugen):
         
@@ -169,7 +191,7 @@ class Tournament:
             if POW2[r] >= len(players):
                 rounds = r
                 break
-        print("ROUNDS NEEDED: " + str(rounds))
+        self.__consoleprint("Starting division " + str(division))
             
         order = [i for i in range(len(players))]
         random.shuffle(order)
@@ -182,17 +204,17 @@ class Tournament:
             for round in range(1, rounds, 1):
                 self.__update_tournament_state("Round", round)
                 self.__update_tournament_state("Order", order)
-                print("\n------\nROUND : " + str(round))
+                self.__consoleprint("Division round : " + str(round))
                 # Reverse order every tound to balance the tournament with odd number of players
                 order.reverse()
                 
                 match = 0
                 while(len(order) - 1 > match):
                     time.sleep(0.5)
-                    print("\nDivision match :" + str(match + 1))
+                    self.__consoleprint("Division match :" + str(match + 1))
                     if len(order) - match > 1:
                         result = self.play_match(players[order[match]], players[order[match + 1]], division, mugen)
-                        print("\nMatch result : " + str(result) + '.')
+                        self.__consoleprint("Match result: " + str(result) + '.')
                         if result == WINNER1:
                             # Player 2 lost, mark the achieved rank in division to player rank data
                             players[order[match + 1]]["Rank"][division] = round
@@ -205,10 +227,9 @@ class Tournament:
                     match += 1
                     
                 if len(order) == 1: 
-                    print("Division complete, winner: " + str(players[order[0]]["Name"]))
+                    self.__consoleprint("Division complete, winner was: " + str(players[order[0]]["Name"]))
                     # We have a winner
                     players[order[0]]["Rank"][division] = round + 1
                     ranking.insert(0,order.pop(0))
-            
-       
+                   
         return ranking

@@ -4,7 +4,7 @@ import asyncio, time
 from config import *
 
 DELAY = 30
-
+MSGNAME = "Miyako-Twitch"
 
 class MiyakoBotTwitch(commands.Bot):
 
@@ -14,36 +14,38 @@ class MiyakoBotTwitch(commands.Bot):
         self.matchsys = matchsys
         self.message_queue = []
         
+    
+    def __consoleprint(self, msg):
+        self.matchsys.console_print(MSGNAME, msg)
+        
     def queue_message(self, message):
         self.message_queue.append(str(message))
 
     # Events don't need decorators when subclassed
     async def event_ready(self):
         threading.current_thread()
-        print(f'Ready | {self.nick}')
+        self.__consoleprint(f'Ready | {self.nick}')
         delay = 0
         while(True):
             # Sleep for 10 seconds
             await asyncio.sleep(1)
             if delay == DELAY:
                 delay = 0
-                print("Miyako-Twitch: Status: " + str(self.matchsys.get_status()))
             while self.message_queue:
-                print("Miyako-Twitch: Sending message.")
+                self.__consoleprint("Sending message.")
                 await self.get_channel(TWITCH_CHANNEL).send(self.message_queue.pop(0))
                 time.sleep(1.5)
             delay += 1
 
     async def event_message(self, message):
         if message.author.name == self.nick:
-            print("Fukked")
             return
         response = ""
         data = message.content.split(":")
         if data[0].lower() == "!new tournament":
             try:
                 value = int(data[1])
-                print(str(value))
+                self.__consoleprint("Registering new tournament: " + str(value))
                 if value > 0:
                     if self.matchsys.get_status() == IDLE:
                         offset_change = self.matchsys.new_tournament(value)

@@ -35,6 +35,7 @@ class match_system():
         self.register_messages = []
         self.division_complete = False
         
+        self.console_locked = 0
         
         self.scoreboard = self.__read_scorefile(SCOREFILE)
         if (USE_DISCORD):
@@ -65,6 +66,13 @@ class match_system():
         state = self.mugen.get_state()
         return not (state == mo.LOADING_STATE or state == mo.DEAD_STATE)
 
+
+
+    # Function to control console printouts from other threads.
+    
+    def console_print(self, sender, message):
+        if not self.console_locked:
+            print(str(sender) + ": " + str(message))
 
 
     # Update/create HTML file.
@@ -424,7 +432,7 @@ class match_system():
     
         # INIT
         
-        self.toursys = tournament.Tournament()
+        self.toursys = tournament.Tournament(self)
         delay = 1
         
         # Reset the HTML outputs to empty content and 1 second refresh

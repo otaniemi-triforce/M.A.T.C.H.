@@ -8,7 +8,7 @@ import tournament as tournament
 import random
 from config import *
 
-
+MSGNAME = "Miyako-Discord"
 DELAY = 30
 
 
@@ -23,6 +23,10 @@ class MiyakoBotDiscord(discord.Client):
         self.message_queue = []
         self.pic_message_queue = []
         self.waiting_presence = ""
+        self.__consoleprint("Starting up")
+    
+    def __consoleprint(self, msg):
+        self.matchsys.console_print(MSGNAME, msg)
     
     def set_matchsys(self, match):
         self.matchsys = match
@@ -72,13 +76,13 @@ class MiyakoBotDiscord(discord.Client):
         try:
             await self.get_channel().send(file=discord.File(pic), content=message)
         except FileNotFoundError:
-            print(pic + " is missing, not critical but plz fix")
+            self.__consoleprint(pic + " is missing, not critical but plz fix")
 
     async def on_ready(self):
         guild = discord.utils.get(self.guilds, name=DISCORD_GUILD)
 
-        print(f'{self.user} connected to Discord')
-        print(f'Guild: {guild.name} (id: {guild.id})')
+        self.__consoleprint(f'{self.user} connected to Discord')
+        self.__consoleprint(f'Guild: {guild.name} (id: {guild.id})')
 
         idle = discord.Activity(type=discord.ActivityType.unknown, name="Inactive")
         await self.change_presence(activity=idle)
@@ -101,13 +105,12 @@ class MiyakoBotDiscord(discord.Client):
             await asyncio.sleep(1)
             if delay == DELAY:
                 delay = 0
-                print("Miyako-Discord: Status: " + str(self.matchsys.get_status()))
             while self.pic_message_queue:
-                print("Miyako-Discord: Sending pic message.")
+                self.__consoleprint("Sending pic message.")
                 data = self.pic_message_queue.pop(0)
                 await self.__send_pic(data[0], data[1])
             while self.message_queue:
-                print("Miyako-Discord: Sending message.")
+                self.__consoleprint("Sending message.")
                 await self.__send_message(self.message_queue.pop(0))
             while self.waiting_presence:
                 if self.waiting_presence == "Idle":
