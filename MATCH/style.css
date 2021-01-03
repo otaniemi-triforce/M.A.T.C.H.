@@ -1,0 +1,53 @@
+/* you can replace this with font of your liking or get the pressstart2p from dafont */
+@font-face {
+    font-family: PressStart2P;
+    src: url('match-common/PressStart2P.ttf');
+}
+
+body { 
+    background-color: rgba(0, 0, 0, 0); 
+    margin: 0px auto; 
+    overflow: hidden; 
+    font-family: PressStart2P; 
+    word-break: break-word;
+    text-align: center;
+    width: 1100; 
+    font-size: 18px; 
+    color: #ed4068;
+}
+
+div { 
+    
+    min-height: 1280px;
+    text-align: left;
+    font-size: 24px;
+    padding: 50px 250px;
+    color: #000000;
+}
+    
+div::after {
+  content: "";
+  background: url(match-common/Miya2-opacity.png);
+  background-position: center; /* Center the image */
+  background-repeat: no-repeat; /* Do not repeat the image */
+  background-size: cover;
+  opacity: 1;
+  top: 25;
+  left: 200;
+  bottom: 0;
+  right: 200;
+  position: absolute;
+  z-index: -1;   
+}    
+    
+    
+    
+table {
+    width: 100%;
+    color: #000000;
+    font-size: 22px;
+}
+
+td {
+    padding: 0px 0px 0px 0px;
+}

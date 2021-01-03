@@ -1,1 +1,0 @@
-Original Discord-only version.
