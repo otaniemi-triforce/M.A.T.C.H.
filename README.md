@@ -6,9 +6,9 @@ Mugen Automated Tournament Creator and Handler (M.A.T.C.H.) is a system that, li
 
 Why would you want to do this?
 ----
-Well, the idea here is to give users bit more control over the streamed AI fights in Mugen and also provde them with a new challenge: Can you find and pick the best fighters of the offset roster against the other players?
+Well, the idea here is to give users bit more control over the streamed AI fights in Mugen and also provide them with a new challenge: Can you find and pick better fighters from the offset roster than other players?
 Also given the division nature of the tournaments, this kind of like Mugen lottery.
-If nothing else, it provides a different kind of interaction from betting on the character.
+If nothing else, it provides a different kind of interaction than just betting on the match outcome.
 
 Okay how does this thing work?
 ----
