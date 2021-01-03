@@ -14,6 +14,19 @@ if (USE_TWITCH):
 
 MSGNAME = "M.A.T.C.H."
 
+# Console structure:
+
+CONSOLE_STRUCTURE  = "\n\n\n"
+CONSOLE_STRUCTURE += "Operator console\n"
+CONSOLE_STRUCTURE += "----------------\n"
+CONSOLE_STRUCTURE += "Command options:\n"
+CONSOLE_STRUCTURE += "  1. Reset registration (NOT IMPLEMENTED YET)\n"
+CONSOLE_STRUCTURE += "  2. Halt tournament (NOT IMPLEMENTED YET)\n"
+CONSOLE_STRUCTURE += "  3. Restart mugen\n"
+CONSOLE_STRUCTURE += "Type option number and press enter to execute.\n"
+CONSOLE_STRUCTURE += "Empty or invalid option closes console.\n"
+
+
 
 class match_system():
     def __init__(self):
@@ -23,9 +36,8 @@ class match_system():
         self.__timer_count = TIMER_INTERVALS[0]
         self.console_locked = 0
         
-        self.console_print(MSGNAME, "Starting up.")
-        self.mugen = mo.MugenOperator(self)
-        self.max_char_ID = self.mugen.get_max_ID()
+        self.mugen = ""
+        self.max_char_ID = 0
         
         self.reserved_characters = []
         self.players = []
@@ -41,11 +53,15 @@ class match_system():
         
         
         self.scoreboard = self.__read_scorefile(SCOREFILE)
-        if (USE_DISCORD):
-            self.ds_client = miyako_discord.MiyakoBotDiscord(self)
-        if (USE_TWITCH):
-            self.twch_client = miyako_twitch.MiyakoBotTwitch(self)
+        self.ds_client = ""
+        self.twch_client = ""
         
+        
+        
+    def __init_mugen(self):
+        self.mugen = mo.MugenOperator(self)
+        self.max_char_ID = self.mugen.get_max_ID()
+
 
         
     # Function to check if mugen is still running
@@ -408,8 +424,26 @@ class match_system():
     
     def main(self):
         
+        print(MSGNAME + " starting up...\n")
+        print("Operator console can be accessed by pressing enter.")
+        print("--------------------------------------------------------------\n\n")
+        
+        time.sleep(3)
+        # Start mugen and init mugenoperator
+        self.__init_mugen()
+         
+        # Init bots
+        if (USE_DISCORD):
+            self.ds_client = miyako_discord.MiyakoBotDiscord(self)
+        if (USE_TWITCH):
+            self.twch_client = miyako_twitch.MiyakoBotTwitch(self)
+
+        # Start main loop
         main_thread = threading.Thread(target=self.main_loop, args=())
         main_thread.start()
+        
+        interaction_thread = threading.Thread(target=self.operator_loop, args=())
+        interaction_thread.start()
         
         loop = asyncio.get_event_loop()
         if (USE_DISCORD):
@@ -420,7 +454,7 @@ class match_system():
             loop.run_forever()
     
     
-    
+
     
     # Main program logic
     #
@@ -434,7 +468,6 @@ class match_system():
     def main_loop(self):
     
         # INIT
-        
         self.toursys = tournament.Tournament(self)
         delay = 1
         
@@ -664,6 +697,60 @@ class match_system():
                 # And back to idle/registration part of the loop...
                 
 
+
+    ################################
+    #  Operator console system     #
+    ################################
+
+
+
+    # Main operator console loop
+        
+    def operator_loop(self):
+        while(True):
+            input()
+            
+            # Suppress other console messages
+            self.console_locked = 1
+            
+            print(CONSOLE_STRUCTURE)
+            selection = input(">>")
+            
+            if selection == "1":
+                self.op_registration_reset()
+            elif selection == "2":
+                self.op_tournament_reset()
+            elif selection == "3":
+                self.op_mugen_reset()
+            else: 
+                print("\n\n")
+                # Completed, free console
+                self.console_locked = 0
+    
+    def op_registration_reset(self):
+        if self.op_confirm("This will stop the current registration and system returns to ready state"):
+            print("Clearing registration...\n")
+            self.console_locked = 0
+        
+    def op_tournament_reset(self):
+        if self.op_confirm("Current running tournament will be stopped.\nResults data will be lost and system returns to ready state"):
+            print("Tournament reset in progress...\n")
+            self.console_locked = 0
+        
+    def op_mugen_reset(self):
+        if self.op_confirm("Current Mugen process will be killed and restarted."):
+            print("Executing mugen restart...\n")
+            self.console_locked = 0
+            self.mugen.reset(True)
+
+    def op_confirm(self, msg):
+        print(msg)
+        confirm = input("Are you sure? (Y/N)\n>>")
+        if confirm == "y" or confirm == "Y":
+            return True
+        else:
+            print("Action cancelled")
+            return False
 
 def main():   
     matchsys = match_system()
