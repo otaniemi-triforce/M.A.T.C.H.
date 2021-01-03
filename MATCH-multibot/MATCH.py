@@ -13,14 +13,11 @@ if (USE_TWITCH):
     import miyako_twitch
 
 
-# Watchdog heartbeat delay rounds
-DELAY = 60
-
-
 class match_system():
     def __init__(self):
         self.state = IDLE
         self.timers = False
+        self.status = ""
         self.__timer_count = TIMER_INTERVALS[0]
         
         self.mugen = mo.MugenOperator()
@@ -45,19 +42,36 @@ class match_system():
         if (USE_TWITCH):
             self.twch_client = miyako_twitch.MiyakoBotTwitch(self)
         
+
         
-        
+    # Function to check if mugen is still running
+
     def check_mugen(self):
-        if(self.mugen.are_you_still_there()):
-            print("MUGEN is active: " + str(mugen.get_state()))
+        if self.mugen.are_you_still_there():
+            if self.state == ERROR:
+                self.lock.acquire()
+                self.state = IDLE
+                self.lock.release()
+                # Some kind of message needs to be sent.
         else:
-            print("MUGEN is dead, abandon all hope.")
-            self.mugen.reset()
+            self.lock.acquire()
+            self.state = ERROR
+            self.lock.release()
+            
+            self.mugen.reset(True)
+
+
+    def check_mugen_loaded(self):
+        state = self.mugen.get_state()
+        return not (state == mo.LOADING_STATE or state == mo.DEAD_STATE)
+
+
 
     # Update/create HTML file.
     # Text is the content, time is the automatic refresh time for the page
     # Idea here is that the page can be empty with minimal refresh time making it responsive to updates
     # When needed, the content can be updated and shown for refresh time.
+
     def update_file_text(self, text, file, time):
         html = ""
         endline = True
@@ -85,14 +99,18 @@ class match_system():
     # SCOREBOARD FUNCTIONS #
     ########################
 
+
     # Write scoreboard to file
+
     def __write_scorefile(self, data, file):
         f = open(file, "wt")
         for key in iter(data):
             f.write(key + "," + str(data[key]) + ",\n")
         f.close()
 
+
     # Read scoreboard from file
+
     def __read_scorefile(self, file):
         try:
             f = open(file, "r")
@@ -106,7 +124,9 @@ class match_system():
             return {}
         return data
 
+
     # Add current scores to the scoreboard
+
     def __update_scoreboard(self, players):
         for player in players:
             score = 0
@@ -116,8 +136,10 @@ class match_system():
                 self.scoreboard[player["Name"]] += score 
             else:
                 self.scoreboard[player["Name"]] = score
+
         
     # Generates HTML table with scores from dictionary {"Name": score}
+
     def __scoretable(self, dict):
         table = "<table>"
         count = 1
@@ -130,24 +152,27 @@ class match_system():
         table += "</table>"
         return table
 
+
     # Create results HTML for the finished division. Display the page for HOLDTIME_SHORT.
     
-    def show_division_results(self, results_dict, division):
+    def show_html_results(self, results_dict, title, display_time):
         # Right, time to create and show the results with some HTML trickery
         # First create the page structure. Put the content in div to enable different style
         
-        results_html = "<div> Division " + str(division) + " results."
+        results_html = "<div> " + str(title) 
         results_html += "\n--------------\n"
         results_html += self.__scoretable(results_dict) + "</div>"
         
         # Update page with results and automatic refresh of short holdtime
-        self.update_file_text(results_html, "results.html", RESULT_HOLDTIME_SHORT)
+        self.update_file_text(results_html, "results.html", display_time)
         # Wait few seconds for the page to update
         time.sleep(3)
         # Write empty page with auto refresh of 1 second. This will be shown after the auto-refresh of the first update is reached
         self.update_file_text("", "results.html", 1)
+
         # Wait for the rest of the results holdtime.
-        time.sleep(RESULT_HOLDTIME_SHORT - 2)
+        if display_time > 2:
+            time.sleep(display_time - 2)
 
     ##################
     #     TIMERS     #
@@ -166,7 +191,7 @@ class match_system():
 
     # Return time alert
     def time_warning(self, i):
-        return "Tournament starts in: " + str(i) + " seconds."
+        return str(i) + " seconds to tournament start."
 
 
 
@@ -176,27 +201,38 @@ class match_system():
 
 
     # Queue registration messages to be sent
+
     def queue_register_message(self, message):
         if message:
             self.register_messages.append(str(message))
 
 
+
     # Return current status of the system
+
     def get_status(self):
         return self.state
 
+
+
     # Return current tournament division count
+
     def get_divisions(self):
         return self.div
+
+
+    # Check if player is already registered
     
     def check_player(self, name):
         for player in self.players:
             if player["Name"] == name:
                 return True
         return False
+
                 
     # Register characters, return list of characters that failed
     # Return empty list if success
+
     def register_chars(self, chars):
         badchars = []
         self.lock.acquire()
@@ -211,6 +247,10 @@ class match_system():
         self.lock.release()
         return badchars
 
+
+
+    # Remove given characters that have been previously selected
+    
     def unregister_chars(self, chars):
         self.lock.acquire()
         for char in chars:
@@ -218,7 +258,10 @@ class match_system():
                 reserved_characters.remove(char)
         self.lock.release()
 
+
+
     # Add new player, check for duplicate 
+
     def add_player(self, player):
         self.lock.acquire()
         # Ensure that state has not been changed by other threads
@@ -238,10 +281,11 @@ class match_system():
         print("Added : " + str(player))
         return True
 
-    # Create new player with characters chars, raise IndexError if any character is reserved 
 
-    # PLAYER data
-    # Contains: User name, Achieved rank in each division, Character id's for Each division
+
+    # Create new player with characters chars, raise IndexError if any character is reserved 
+    # PLAYER data contains: 
+    # User name, Achieved rank in each division, Character id's for Each division
     # player == {"Name" : "Example", "Rank" : [0,0,0], "Characters" : [1,2,3]}
 
     def new_player(self, name, chars):
@@ -250,8 +294,10 @@ class match_system():
             return {}
         return {"Name":name, "Rank": [0 for i in range(self.div)], "Characters": chars}
         
+
         
-    # Create new tournament, store values of previous tournament (for no reason at this point)
+    # Create new tournament, this will clear any previous tournament data
+    
     def new_tournament(self, divisions):
         # Lock tournament data
         self.lock.acquire()
@@ -274,6 +320,7 @@ class match_system():
         self.div = divisions
         self.reserved_characters = []
         self.state = REGISTRATION
+        
         # Check if offset needs renewing
         if self.offset_counter >= OFFSET_COUNT:
             self.offset = random.randint(0, self.max_char_ID)
@@ -282,6 +329,8 @@ class match_system():
             self.offset_counter += 1
         self.lock.release()
         return True
+
+
 
     # Get the current tournament status from the tournament subsystem
     # Updates the info text and lets the system know that division has finished
@@ -302,11 +351,14 @@ class match_system():
                 else:
                     state_fight = "-"
                 new_presence = "Running tournament. Match: " + state_fight + " -- Division: " + str(state_div + 1) + " Round : " + str(state_round)
+
             else:
                 if self.get_status() == IDLE:
                     new_presence = "Idle"
                 elif self.get_status() == REGISTRATION:
                     new_presence = "Registration open for " + str(self.div) + " division tournament. Current entries: " + str(len(self.players))
+                elif self.get_status == RESET:
+                    new_presence = "Match reset...stand by"
                 else:
                     new_presence = "Tournament ended"
             return new_presence
@@ -320,8 +372,10 @@ class match_system():
     def offset_changed(self):
         return self.offset_counter == 0
 
+
     def get_offset_duration(self):
         return str(OFFSET_COUNT - self.offset_counter)
+
 
     # Apply current offset
     def offset_char(self, value, add):
@@ -331,8 +385,10 @@ class match_system():
             tmp = value - self.offset
         return tmp % (self.max_char_ID + 1)
 
+
     def get_max_ID(self):
         return str(self.max_char_ID)
+
 
 
     ######################################################
@@ -435,8 +491,19 @@ class match_system():
                 self.__timer_count -= 1
 
             # Print system status every DELAY seconds
-            if delay > DELAY:
-                print("M.A.T.C.H. status: " + str(self.get_status()))
+            if delay > WATCHDOG_DELAY:
+                self.check_mugen()
+                if self.get_status() == IDLE:
+                    status = "Ready - Waiting commands"
+                elif self.get_status() == REGISTRATION:
+                    status = "Registration ongoing"
+                elif self.get_status() == RUNNING:
+                    status = "Tournament running"
+                elif self.get_status() == FINISHING:
+                    status = "Tournament ended, displaying results"
+                else:
+                    status = "Mugen failure, trying to recover"
+                print("M.A.T.C.H. status: " + status)
                 delay = 0
             delay += 1
 
@@ -466,18 +533,19 @@ class match_system():
                 
                 print ("M.A.T.C.H.: TOURNAMENT THREAD STARTED")
                 tour_t.start()
-                
+            
+            
             # While in tournament, suspend other activity
             if self.toursys.is_running():
-                delay = 0
+                timer = 0
                 while self.toursys.is_running():
                     # Check status
+                    status = self.tournament_status()
                     # Send new presence data to Discord bot and update info texts
                     if (USE_DISCORD):
-                        if delay == 5:
-                            self.ds_client.set_presence(self.tournament_status())
-                            delay = 0
-                        
+                        if timer % 5 == 0:
+                            self.ds_client.set_presence(status)
+                            
                     
                     # Check if we need to deliver division results
                     if self.division_complete:
@@ -487,15 +555,45 @@ class match_system():
                         if self.div > 0:
                             results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 2)
                             
-                            # Send update to Discord
-                            self.ds_client.queue_message("Division: " + str(self.ongoing_div - 1) + " finished." )
-                            # Show results HTML
-                            self.show_division_results(results_dict, self.ongoing_div - 1)                        
+                            text = "Division " + str(self.ongoing_div - 1)
+                            if (USE_DISCORD):
+                                # Send update to Discord
+                                self.ds_client.queue_message(text + " finished." )
                             
+                            # Show division results HTML
+                            self.show_html_results(results_dict, text + " results.", RESULT_TIME_DIVISION)
+                    
+                    # Timer reset
+                    if status != self.status:
+                        self.status = status
+                        timer = 0
+                    
+                    # Recovery timer check
+                    if timer > RECOVERY_TIME:
+                        # Mugen is probably stuck.
+                        self.lock.acquire()
+                        self.state = RESET
+                        self.lock.release()
+                        
+                        self.mugen.reset(True)
+                        timer = 0
+                    
+                    
                     time.sleep(1)
-                    delay += 1
+                    if self.check_mugen_loaded():
+                        if self.state == RESET:
+                            self.lock.acquire()
+                            self.state = RUNNING
+                            self.lock.release()
+                        timer += 1
                 
                 # TOURNAMENT END
+                
+                # Change state to finishing up
+                self.lock.acquire()
+                self.state = FINISHING
+                self.lock.release()
+                
                 
                 # RESULTS
                 
@@ -511,8 +609,9 @@ class match_system():
                 if (USE_DISCORD):
                     self.ds_client.queue_message("Division: " + str(self.ongoing_div) + " finished." )
                 
-                # Show results HTML
-                self.show_division_results(results_dict, self.ongoing_div)
+                # Show division results HTML
+                title = "Division " + str(self.ongoing_div) + " results."
+                self.show_html_results(results_dict, title, RESULT_TIME_DIVISION)
                 
                 
                 print("M.A.T.C.H.: Tournament ended")
@@ -532,38 +631,24 @@ class match_system():
                 self.__update_scoreboard(self.players)
                 self.__write_scorefile(self.scoreboard, SCOREFILE)
                 
-                
-                
-                # Update the results.html with results then highscores. 
-                # Hold data for RESULT_HOLDTIME for both, then clear
-                
-                results_html = "<div>Final tournament scores:\n--------------\n" + self.__scoretable(results_dict) + " </div>"
-                self.update_file_text(results_html, "results.html", RESULT_HOLDTIME)
-                # Meanwhile, create HTML table for highscores
-                scores = "<div>All time scores:\n--------------\n"
-                scores += self.__scoretable(self.scoreboard)
-                scores += "</div>"
-                # Wait for the browser to update the page
-                time.sleep(2)
-                # Change content
-                self.update_file_text(scores, "results.html", RESULT_HOLDTIME)
-                # Wait for the results to change to highscores
-                time.sleep(RESULT_HOLDTIME + 1)
-                # Clear the page and set refresh to 1 second
-                self.update_file_text("", "results.html", 1)
-
-                # While the all-time scores are shown, reset the system state
-                
-                # Reset the previous state, in case someone tries to register before idle loop executes 
-                previous_state = ""
-                
-                # Change state
+                # Change state to idle before all time scores.
                 self.lock.acquire()
                 self.state = IDLE
                 self.lock.release()
                 
-                # Wait for the all-time highscores (Kinda pointless, might as well move ahead)
-                # time.sleep(RESULT_HOLDTIME - 4)
+                # Update the results.html with results then highscores. 
+                # Hold data for RESULT_TIME_FINAL for both, then clear
+                
+                title = "Final tournament scores:"
+                self.show_html_results(results_dict, title, RESULT_TIME_FINAL)
+                
+                # Meanwhile, create HTML table for highscores
+                title = "All time scores:"
+                self.show_html_results(self.scoreboard, title, RESULT_TIME_FINAL)
+                
+                # Reset the previous state, in case someone tries to register before idle loop executes 
+                previous_state = ""
+                
                 
                 # And back to idle/registration part of the loop...
                 

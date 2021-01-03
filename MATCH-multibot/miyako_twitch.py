@@ -118,11 +118,13 @@ class MiyakoBotTwitch(commands.Bot):
         elif data[0].lower() == "!status":
             status = self.matchsys.get_status()
             if status == IDLE:
-                response = "Idle at the moment"
+                response = "Nothing happening, ready to go."
             elif status == REGISTRATION:
-                response = "Collecting registrations"
+                response = "Registration open"
             elif status == RUNNING:
-                response = "Running tournament"    
+                response = "Running tournament"
+            elif status == FINISHING:
+                response = "Tournament ended"
             else:
                 response = "Something is wrong"
             await message.channel.send(response)    

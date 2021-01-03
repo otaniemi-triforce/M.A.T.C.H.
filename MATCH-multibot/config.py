@@ -1,18 +1,25 @@
-# Discord bot settings
+#### Discord bot settings ####
 
-USE_DISCORD = 0 # Enable DISCORD bot
-DISCORD_TOKEN=""
-DISCORD_GUILD=""
+USE_DISCORD = 1 # Enable Discord bot
+DISCORD_TOKEN="NzA2MTk2MTA1MDI4ODI5MzI1.Xq2w_g.ULvbzDWhRyAJyjUe4qTB0SspmN0"
+DISCORD_GUILD="Yarbarb's server"
 
-# Twitch bot settings
+
+## Important pics...because important. ## 
+# One of these is sent to Discord when tournament ends. Feel free to add more/modify these.
+PICS = ["match-common/Miya-results1.png", "match-common/Miya-results2.png", "match-common/Miya-results3.png"]
+# Picture sent at the start of the tournament
+TOURNAMENT_START_PIC = "match-common/miya-happy-sm.png"
+
+
+#### Twitch bot settings ####
 
 USE_TWITCH = 0 # Enable Twitch bot
-TWITCH_CHANNEL = ''
-TWITCH_IRC_TOKEN = ''
-TWITCH_CLIENT_ID = ''
-TWITCH_NICK = ''
+TWITCH_CHANNEL = '------------------------'
+TWITCH_IRC_TOKEN = 'oauth:frlchajcpzf55gq3rjck3ro2rul9m2'
+TWITCH_CLIENT_ID = 'r02ltyaq66yyycv1dsdlk0abaco87y'
+TWITCH_NICK = 'MayhemManagerMiyaMiya'
 TWITCH_PREFIX = '#'
-
 
 # Mugenoperator configuration. Use these to adjust the file locations, behaviour and buttons the operator uses.
 
@@ -37,19 +44,16 @@ HOLDTIME = 0.1      # Button down AND release time in seconds. Button press will
 DEBUG = True        # Enable debug prints for mugenoperator
 
 
-# Number of time the same offset will be used
-OFFSET_COUNT = 5
+#### HTML related parameters ####
 
-# Set this to prevent multiple registrations with same name
-# Note that this will make the scores rather interesting
-NO_DUPLICATES = 0
+# Duration the different scores are shown
 
-# Initial time and warning intervals in seconds. For testing purposes set these to smaller values. 
-TIMER_INTERVALS = [180,120,60,30,15]
+# Used for final/all time scores
+RESULT_TIME_FINAL = 15
+# Used for division results
+RESULT_TIME_DIVISION = 15
 
-# Time to hold the results screens visible
-RESULT_HOLDTIME = 15
-RESULT_HOLDTIME_SHORT = 15
+####   Highscores   ####
 
 # File for scores
 SCOREFILE = "match.score"
@@ -57,13 +61,37 @@ SCOREFILE = "match.score"
 # Last position in the ranking list. Change this (or the .css) to fit the scores to the generated HTML-page
 RANKING_LIST_MAX = 24
 
-# Important pics...because important. One of these is sent to Discord when tournament ends.
-PICS = ["match-common/Miya-results1.png", "match-common/Miya-results2.png", "match-common/Miya-results3.png"]
-TOURNAMENT_START_PIC = "match-common/miya-happy-sm.png"
+
+#### MATCH settings ####
+
+# Number of time the same offset will be used
+OFFSET_COUNT = 5
+
+# Set this to prevent multiple registrations with same name
+# Note that this can make the scores rather interesting
+NO_DUPLICATES = 0
+
+# Initial time and countdown intervals in seconds. For testing purposes set these to smaller values.
+# First value defines starting point, rest are intervals.
+# Intervals will be used in order from highest to lowest, values higher than the initial time will be ignored.
+# A message is sent on every interval, any number of intervals can be used.
+
+TIMER_INTERVALS = [6,2]
+
+
+###
+
+# Mugen self-recovery timer limit. The system will automatically reset mugen if single match takes this long
+RECOVERY_TIME = 500
+
+# Watchdog delay. This determines the M.A.T.C.H. status interval in seconds.
+WATCHDOG_DELAY = 60
 
 # M.A.T.C.H. Status codes, no need to ever touch these
 IDLE = 0
 REGISTRATION = 1
 RUNNING = 2
+FINISHING = 3
 ERROR = -1
+RESET = -2
 

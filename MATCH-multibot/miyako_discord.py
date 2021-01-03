@@ -142,6 +142,8 @@ class MiyakoBotDiscord(discord.Client):
             elif payload.startswith(" new tournament:"): # New tournament requested
                 if self.matchsys.get_status() == RUNNING:
                     response = "Previous tournament still running"
+                elif self.matchsys.get_status() == FINISHING:
+                    response = "Previous tournament still finishing. Wait for a moment."
                 else:
                     try:
                         # Parse
