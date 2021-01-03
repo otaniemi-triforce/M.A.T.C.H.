@@ -10,7 +10,6 @@ import math
 import subprocess
 import win32gui,win32api,win32con
 from config import *
-import threading
 
 
 # Memory reader info
