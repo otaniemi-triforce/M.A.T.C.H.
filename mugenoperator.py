@@ -28,7 +28,9 @@ VS_STATE = 3
 FIGHT_STATE = 4
 DEAD_STATE = 5
 
-
+# Wait this long until trying to start new MUGEN process (* WAIT seconds).
+GRACETIME = 2
+WAIT = 5
 
 class MugenOperator():
 
@@ -74,7 +76,12 @@ class MugenOperator():
             self.index = len(f.readlines())-1
             f.close()
         processloaded = False
+        gracetime = 0
         while not processloaded or self.p == None or self.window == 0:
+            if gracetime >= GRACETIME:
+                gracetime = 0
+                os.startfile(PROCESS_NAME)
+            gracetime += 1
             try:
                 self.p = self.rwm.get_process_by_name(PROCESS_NAME)
                 self.window = win32gui.FindWindow(None,"M.U.G.E.N")
@@ -82,7 +89,7 @@ class MugenOperator():
                 processloaded = True
             except:
                 print("Process not found! Is MUGEN running? Trying again...")
-                sleep(2)
+                sleep(WAIT)
         self.win1_ptr = self.p.get_pointer(WIN_ADDRESS, [0x0000871C])
         self.win2_ptr = self.p.get_pointer(WIN_ADDRESS, [0x00008728])
 
