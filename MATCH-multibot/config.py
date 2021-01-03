@@ -1,8 +1,8 @@
 #### Discord bot settings ####
 
 USE_DISCORD = 1 # Enable Discord bot
-DISCORD_TOKEN="NzA2MTk2MTA1MDI4ODI5MzI1.Xq2w_g.ULvbzDWhRyAJyjUe4qTB0SspmN0"
-DISCORD_GUILD="Yarbarb's server"
+DISCORD_TOKEN=""
+DISCORD_GUILD=""
 
 
 ## Important pics...because important. ## 
@@ -16,9 +16,9 @@ TOURNAMENT_START_PIC = "match-common/miya-happy-sm.png"
 
 USE_TWITCH = 0 # Enable Twitch bot
 TWITCH_CHANNEL = '------------------------'
-TWITCH_IRC_TOKEN = 'oauth:frlchajcpzf55gq3rjck3ro2rul9m2'
-TWITCH_CLIENT_ID = 'r02ltyaq66yyycv1dsdlk0abaco87y'
-TWITCH_NICK = 'MayhemManagerMiyaMiya'
+TWITCH_IRC_TOKEN = ''
+TWITCH_CLIENT_ID = ''
+TWITCH_NICK = ''
 TWITCH_PREFIX = '#'
 
 # Mugenoperator configuration. Use these to adjust the file locations, behaviour and buttons the operator uses.
