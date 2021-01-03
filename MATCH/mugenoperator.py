@@ -32,9 +32,13 @@ DEAD_STATE = 5
 GRACETIME = 2
 WAIT = 5
 
+MSGNAME = "Mugen operator"
+
 class MugenOperator():
 
-    def __init__(self):
+    def __init__(self, matchsys):
+        self.matchsys = matchsys
+    
         self.player1_chars = []
         self.player2_chars = []
         self.rwm = ReadWriteMemory()
@@ -45,9 +49,13 @@ class MugenOperator():
         self.p = None
         self.window = 0
         self.max_id = self.check_characterlist()  # index of last char
-        print("MUGEN OPERATOR STARTED. Number of characters detected: "+str(self.max_id + 1))
+        self.__consoleprint("MUGEN OPERATOR STARTED. Number of characters detected: "+str(self.max_id + 1))
         self.lastrow = self.calculate_wanted_point(self.max_id)[1]
         self.reset()
+
+    def __consoleprint(self, msg):
+        self.matchsys.console_print(MSGNAME, msg)
+
     
     # Resets variables. Set kill = True to also kill MUGEN.
     def reset(self, kill = False):
@@ -88,7 +96,7 @@ class MugenOperator():
                 self.p.open()
                 processloaded = True
             except:
-                print("Process not found! Is MUGEN running? Trying again...")
+                self.__consoleprint("Process not found! Is MUGEN running? Trying again...")
                 sleep(WAIT)
         self.win1_ptr = self.p.get_pointer(WIN_ADDRESS, [0x0000871C])
         self.win2_ptr = self.p.get_pointer(WIN_ADDRESS, [0x00008728])
@@ -232,7 +240,7 @@ class MugenOperator():
 
     def debug(self, msg):
         if(DEBUG):
-            print(msg)
+            self.__consoleprint(msg)
 
     # Memory based character load, memory addresses are machine specific! Not used in this version.
     '''
@@ -356,7 +364,7 @@ class MugenOperator():
             elif not os.path.exists(charpath):
                 continue # No such file
 
-            print(charpath)  
+            # self.__consoleprint(charpath)  
             # Try opening the character file, if error, skip it and hope it doesn't break anything
             try:
                 cf = open(charpath,'r', encoding="utf8", errors="replace")

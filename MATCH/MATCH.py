@@ -12,6 +12,8 @@ if (USE_DISCORD):
 if (USE_TWITCH):
     import miyako_twitch
 
+MSGNAME = "M.A.T.C.H."
+
 
 class match_system():
     def __init__(self):
@@ -19,8 +21,10 @@ class match_system():
         self.timers = False
         self.status = ""
         self.__timer_count = TIMER_INTERVALS[0]
+        self.console_locked = 0
         
-        self.mugen = mo.MugenOperator()
+        self.console_print(MSGNAME, "Starting up.")
+        self.mugen = mo.MugenOperator(self)
         self.max_char_ID = self.mugen.get_max_ID()
         
         self.reserved_characters = []
@@ -35,7 +39,6 @@ class match_system():
         self.register_messages = []
         self.division_complete = False
         
-        self.console_locked = 0
         
         self.scoreboard = self.__read_scorefile(SCOREFILE)
         if (USE_DISCORD):
