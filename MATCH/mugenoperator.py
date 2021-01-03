@@ -10,6 +10,7 @@ import math
 import subprocess
 import win32gui,win32api,win32con
 from config import *
+import threading
 
 
 # Memory reader info
@@ -59,6 +60,7 @@ class MugenOperator():
     
     # Resets variables. Set kill = True to also kill MUGEN.
     def reset(self, kill = False):
+        
         if(kill and self.p != None):
             try:
                 os.kill(self.p.pid, signal.SIGTERM)
@@ -89,13 +91,13 @@ class MugenOperator():
             if gracetime >= GRACETIME:
                 gracetime = 0
                 os.startfile(PROCESS_NAME)
-            gracetime += 1
             try:
                 self.p = self.rwm.get_process_by_name(PROCESS_NAME)
                 self.window = win32gui.FindWindow(None,"M.U.G.E.N")
                 self.p.open()
                 processloaded = True
             except:
+                gracetime += 1
                 self.__consoleprint("Process not found! Is MUGEN running? Trying again...")
                 sleep(WAIT)
         self.win1_ptr = self.p.get_pointer(WIN_ADDRESS, [0x0000871C])
