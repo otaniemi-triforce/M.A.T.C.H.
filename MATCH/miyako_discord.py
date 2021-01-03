@@ -23,7 +23,7 @@ class MiyakoBotDiscord(discord.Client):
         self.message_queue = []
         self.pic_message_queue = []
         self.waiting_presence = ""
-        self.__consoleprint("Starting up")
+        self.__consoleprint("Connecting...")
     
     def __consoleprint(self, msg):
         self.matchsys.console_print(MSGNAME, msg)

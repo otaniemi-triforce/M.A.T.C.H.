@@ -71,7 +71,7 @@ class match_system():
 
 
 
-    # Function to control console printouts from other threads.
+    # Function to control console printouts.
     
     def console_print(self, sender, message):
         if not self.console_locked:
@@ -289,7 +289,7 @@ class match_system():
         if len(self.players) > 1:
             self.__start_timers()
         self.lock.release()
-        print("Added : " + str(player))
+        self.console_print(MSGNAME,"Added : " + str(player))
         return True
 
 
@@ -514,7 +514,7 @@ class match_system():
                     status = "Tournament ended, displaying results"
                 else:
                     status = "Mugen failure, trying to recover"
-                print("M.A.T.C.H. status: " + status)
+                self.console_print(MSGNAME,status)
                 delay = 0
             delay += 1
 
@@ -542,7 +542,7 @@ class match_system():
                 # Create new tournament thread
                 tour_t = threading.Thread(target=self.toursys.run_tournament , args=(self.players, self.div, self.mugen))
                 
-                print ("M.A.T.C.H.: TOURNAMENT THREAD STARTED")
+                self.console_print(MSGNAME,"Tournament controller started")
                 tour_t.start()
             
             
@@ -625,7 +625,7 @@ class match_system():
                 self.show_html_results(results_dict, title, RESULT_TIME_DIVISION)
                 
                 
-                print("M.A.T.C.H.: Tournament ended")
+                self.console_print(MSGNAME,"Showing results")
                 
                 # Send tournament end messages
                 if (USE_TWITCH):
