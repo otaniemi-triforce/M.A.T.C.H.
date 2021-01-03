@@ -23,7 +23,8 @@ If you have this, then minimal installation is to:
  *  ~~Choose whether you wish to have the plain Discord version or the more advanced Discord/Twitch Multibot-version.~~
     * The plain discord version of the system is basically deprecated at this point. 
  * Create accounts for Discord and/or Twitch bots. Instructions to these are available from those services.
- * Copy the contents of the selected version to the Mugen root
+ * Copy the contents of the MATCH folder directly into the Mugen folder (e.g. c:\mugen\)
+ * Place the match-common folder into the Mugen folder (e.g. contents should be in c:\mugen\match-common\)
  * Modify the included config.py file. 
     * Setup the relevant account info for the bots and enable them.
     * Modify the location of the select.def to match your setup.
@@ -109,6 +110,10 @@ Using the Twitch bot
 Very similar to the Discord version.
 
 Accepted commands:
+
+``!status``
+
+Reports current state of the system.
 
 ``!new tournament: <divisions>``
 
