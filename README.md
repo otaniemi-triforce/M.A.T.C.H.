@@ -88,6 +88,10 @@ After the system is started, the Discord bot will connect to designated channel 
 
 All commands are passed as mentions to the bot.
 
+ ``<@botname> status``
+
+  Reports the current state of the system.
+
  ``<@botname> new tournament: <divisions>``
  
   Command generates a new tournament with given number of divisions.
@@ -137,11 +141,7 @@ TODO / Caveats
 ----
 In it's current state, the system has many quirks/issues/'features' that could use improvement in the future:
   * Neither of the bots offer assistance in their use. (This is a real headscratcher, what were we thinking 8 or months ago?) 
-  * There is no way to reset/undo/cancel any of the functions via bots or any other way (apart from system reset). This includes: 
-     * Once registration is started, there is no going back
-     * Registration is permanent action, until tournament has finished
-     * Once started, the tournament can't be stopped
-  * The above limitation is due to the fact that there is no admin system or other user classification. The system was designed to be autonomous and to be as simple as possible. This is not ideal in other use cases and it is not ideal in our use case either, as it takes one clever user to render the system basically inoperable (new tournament: 15 or more should do the trick)
+  * Registration/Tournament/Game resets need to be done from console. Adding this to the bots as well would be nice.
   * Based on our experience, the system is not fully autonomous even when this was the design goal. Mugen has tendency to cause trouble in a way that is hard to detect via automation, which in turn means that someone needs to be watching the system when it is operating anyway.
   * OBS browser has issues with the HTML-file occasionally. This seems to be more of a OBS problem, as the tricks used to make it dynamic are basic HTML.
   * In the future, this system could be turned fully automatic tournament machine without any user input. Probably not very difficult to do, so might as well implement that as well
