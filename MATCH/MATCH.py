@@ -20,9 +20,10 @@ CONSOLE_STRUCTURE  = "\n\n\n"
 CONSOLE_STRUCTURE += "Operator console\n"
 CONSOLE_STRUCTURE += "----------------\n"
 CONSOLE_STRUCTURE += "Command options:\n"
-CONSOLE_STRUCTURE += "  1. Reset registration (NOT IMPLEMENTED YET)\n"
-CONSOLE_STRUCTURE += "  2. Halt tournament (NOT IMPLEMENTED YET)\n"
-CONSOLE_STRUCTURE += "  3. Restart mugen\n"
+CONSOLE_STRUCTURE += "  1. Reset registration\n"
+CONSOLE_STRUCTURE += "  2. Halt tournament\n"
+CONSOLE_STRUCTURE += "  3. Halt tournament and restart Mugen\n"
+CONSOLE_STRUCTURE += "  4. Restart mugen\n"
 CONSOLE_STRUCTURE += "Type option number and press enter to execute.\n"
 CONSOLE_STRUCTURE += "Empty or invalid option closes console.\n"
 
@@ -222,9 +223,9 @@ class match_system():
 
 
 
-    #############################
-    #     TOURNAMENT LOGIC      #
-    #############################
+    #################################
+    #     TOURNAMENT FUNCTIONS      #
+    #################################
 
 
     # Queue registration messages to be sent
@@ -234,12 +235,10 @@ class match_system():
             self.register_messages.append(str(message))
 
 
-
     # Return current status of the system
 
     def get_status(self):
         return self.state
-
 
 
     # Return current tournament division count
@@ -322,6 +321,10 @@ class match_system():
         return {"Name":name, "Rank": [0 for i in range(self.div)], "Characters": chars}
         
 
+
+    ##################################
+    #        TOURNAMENT LOGIC        #
+    ##################################
         
     # Create new tournament, this will clear any previous tournament data
     
@@ -390,6 +393,112 @@ class match_system():
                     new_presence = "Tournament ended"
             return new_presence
 
+
+    # Start and run tournament
+
+    def run_tournament(self):
+        # Create new tournament thread
+        tour_t = threading.Thread(target=self.toursys.run_tournament , args=(self.players, self.div, self.mugen))
+        
+        self.console_print(MSGNAME,"Tournament controller started")
+        tour_t.start()
+    
+        # Kickoff tournament
+        if (USE_DISCORD):
+            self.ds_client.queue_pic(TOURNAMENT_START_PIC, "Tournament started, finally we get the good bit")
+        if (USE_TWITCH):
+            self.twch_client.queue_message("Tournament started, finally some action.")
+    
+        # While in tournament, suspend other activity
+        if self.toursys.is_running():
+            timer = 0
+            while self.toursys.is_running():
+                # Check status
+                status = self.tournament_status()
+                # Send new presence data to Discord bot and update info texts
+                if (USE_DISCORD):
+                    if timer % 5 == 0:
+                        self.ds_client.set_presence(status)
+                        
+                
+                # Check if we need to deliver division results
+                if self.division_complete:
+                    self.division_complete = False
+                    
+                    # Sanity check, at least one division needs to be completed
+                    if self.div > 0:
+                        results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 2)
+                        
+                        text = "Division " + str(self.ongoing_div - 1)
+                        if (USE_DISCORD):
+                            # Send update to Discord
+                            self.ds_client.queue_message(text + " finished." )
+                        
+                        # Show division results HTML
+                        self.show_html_results(results_dict, text + " results.", RESULT_TIME_DIVISION)
+                
+                # Timer reset
+                if status != self.status:
+                    self.status = status
+                    timer = 0
+                
+                # Recovery timer check
+                if timer > RECOVERY_TIME:
+                    # Mugen is probably stuck.
+                    self.lock.acquire()
+                    self.state = RESET
+                    self.lock.release()
+                    
+                    self.mugen.reset(True)
+                    timer = 0
+                
+                
+                time.sleep(1)
+                if self.check_mugen_loaded():
+                    if self.state == RESET:
+                        self.lock.acquire()
+                        self.state = RUNNING
+                        self.lock.release()
+                    timer += 1
+
+
+
+    def stop_tournament_registration(self):    
+        # Stop only if in registration or timers are running
+        if not (self.state == REGISTRATION or self.__timers_active()):
+            return "No tournament registration ongoing"
+        else:
+            self.lock.acquire()
+            self.state = IDLE
+            self.__reset_timers()
+            self.lock.release()
+            self.console_print(MSGNAME, "Registration cancelled.")
+            
+            
+            if (USE_DISCORD):
+                self.ds_client.queue_message("Tournament registration aborted by operator")
+            if (USE_TWITCH):
+                self.twch_client.queue_message("Tournament registration aborted by operator")
+            return ""
+            
+
+    def stop_tournament(self, kill):
+        if self.state == IDLE or self.state == REGISTRATION:
+            return "No tournament is running at the moment"
+        else:
+            self.lock.acquire()
+            self.toursys.stop_tournament()
+            self.state = IDLE
+            self.lock.release()
+            self.console_print(MSGNAME, "Tournament stopped.")
+            if (USE_DISCORD):
+                self.ds_client.queue_message("Ongoing tournament stopped by operator")
+            if (USE_TWITCH):
+                self.twch_client.queue_message("Ongoing tournament stopped by operator")
+
+            # Kill mugen process as well, if requested.
+            self.mugen.reset(kill)            
+            return ""
 
     ############################
     #      OFFSET SYSTEM       #
@@ -461,15 +570,15 @@ class match_system():
     # 1. Idle state/Registration/Timers
     # 2. Tournament start
     # 3. Tournament loop
-    # 4. Results
-    #
+    #    - Results
+    # 4. Watchdog
     #
     
     def main_loop(self):
     
         # INIT
         self.toursys = tournament.Tournament(self)
-        delay = 1
+        system_timer = 1
         
         # Reset the HTML outputs to empty content and 1 second refresh
         
@@ -512,7 +621,7 @@ class match_system():
          
             if (USE_DISCORD):
                 # Update the discord presence every 5 seconds
-                if delay % 5 == 0:
+                if system_timer % 5 == 0:
                     self.ds_client.set_presence(self.tournament_status())
                 
             # If any queued registrations exists, send them to all clients
@@ -523,38 +632,18 @@ class match_system():
                 if (USE_TWITCH):
                     self.twch_client.queue_message(msg)
 
-            # Timer system
+            # Timed message system
             if self.__timers_active():
                 for interval in TIMER_INTERVALS:
                     if self.__timer_count == interval:
                         if (USE_DISCORD):
-                            self.ds_client.queue_message(self.time_warning(interval)) # 60
+                            self.ds_client.queue_message(self.time_warning(interval))
                         if (USE_TWITCH):
                             self.twch_client.queue_message(self.time_warning(interval))
                         self.update_file_text("Registration in progress. Tournament starting in " + str(interval), "info.html", 8)
                 self.__timer_count -= 1
 
-            # Print system status every DELAY seconds
-            if delay > WATCHDOG_DELAY:
-                self.check_mugen()
-                if self.get_status() == IDLE:
-                    status = "Ready - Waiting commands"
-                elif self.get_status() == REGISTRATION:
-                    status = "Registration ongoing"
-                elif self.get_status() == RUNNING:
-                    status = "Tournament running"
-                elif self.get_status() == FINISHING:
-                    status = "Tournament ended, displaying results"
-                else:
-                    status = "Mugen failure, trying to recover"
-                self.console_print(MSGNAME,status)
-                delay = 0
-            delay += 1
-
-            # Wait for one second
-            time.sleep(1)
-
-
+            
             # IDLE/REGISTRATION END
 
             # TOURNAMENT START AND RUNNING
@@ -567,135 +656,97 @@ class match_system():
                 self.lock.release()
                 self.__reset_timers()
                 
-                # Kickoff tournament
-                if (USE_DISCORD):
-                    self.ds_client.queue_pic(TOURNAMENT_START_PIC, "Tournament started, finally we get the good bit")
-                if (USE_TWITCH):
-                    self.twch_client.queue_message("Tournament started, finally some action.")
-                # Create new tournament thread
-                tour_t = threading.Thread(target=self.toursys.run_tournament , args=(self.players, self.div, self.mugen))
+                self.run_tournament()
                 
-                self.console_print(MSGNAME,"Tournament controller started")
-                tour_t.start()
-            
-            
-            # While in tournament, suspend other activity
-            if self.toursys.is_running():
-                timer = 0
-                while self.toursys.is_running():
-                    # Check status
-                    status = self.tournament_status()
-                    # Send new presence data to Discord bot and update info texts
+                # Check if the toursys was killed by operator.
+                if self.state == RUNNING:
+                
+                    # TOURNAMENT END
+                    
+                    # Change state to finishing up
+                    self.lock.acquire()
+                    self.state = FINISHING
+                    self.lock.release()
+                    
+                    
+                    # RESULTS
+                    
+                    # Clear the info text
+                    self.update_file_text("", "info.html", 1)
+                    
                     if (USE_DISCORD):
-                        if timer % 5 == 0:
-                            self.ds_client.set_presence(status)
-                            
+                        # Update Discord presence and show division results:
+                        self.ds_client.set_presence(self.tournament_status())
+                    results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 2)
                     
-                    # Check if we need to deliver division results
-                    if self.division_complete:
-                        self.division_complete = False
-                        
-                        # Sanity check, at least one division needs to be completed
-                        if self.div > 0:
-                            results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 2)
-                            
-                            text = "Division " + str(self.ongoing_div - 1)
-                            if (USE_DISCORD):
-                                # Send update to Discord
-                                self.ds_client.queue_message(text + " finished." )
-                            
-                            # Show division results HTML
-                            self.show_html_results(results_dict, text + " results.", RESULT_TIME_DIVISION)
+                    # Send update to Discord
+                    if (USE_DISCORD):
+                        self.ds_client.queue_message("Division: " + str(self.ongoing_div) + " finished." )
                     
-                    # Timer reset
-                    if status != self.status:
-                        self.status = status
-                        timer = 0
-                    
-                    # Recovery timer check
-                    if timer > RECOVERY_TIME:
-                        # Mugen is probably stuck.
-                        self.lock.acquire()
-                        self.state = RESET
-                        self.lock.release()
-                        
-                        self.mugen.reset(True)
-                        timer = 0
+                    # Show division results HTML
+                    title = "Division " + str(self.ongoing_div) + " results."
+                    self.show_html_results(results_dict, title, RESULT_TIME_DIVISION)
                     
                     
-                    time.sleep(1)
-                    if self.check_mugen_loaded():
-                        if self.state == RESET:
-                            self.lock.acquire()
-                            self.state = RUNNING
-                            self.lock.release()
-                        timer += 1
+                    self.console_print(MSGNAME,"Showing results")
+                    
+                    # Send tournament end messages
+                    if (USE_TWITCH):
+                        self.twch_client.queue_message("Tournament finished.")
+                    if (USE_DISCORD):
+                        self.ds_client.queue_pic(PICS[random.randint(0,len(PICS) - 1)], "Ah that was nice.")
+                    # Create results
+                    results, results_dict = self.toursys.final_rankings(self.players, self.div)
+                    
+                    if (USE_DISCORD):
+                        self.ds_client.queue_message(results)
+                    
+                    # Add scores to highscores and write new scorefile
+                    self.__update_scoreboard(self.players)
+                    self.__write_scorefile(self.scoreboard, SCOREFILE)
+                    
+                    # Change state to idle before all time scores.
+                    self.lock.acquire()
+                    self.state = IDLE
+                    self.lock.release()
+                    
+                    # Update the results.html with results then highscores. 
+                    # Hold data for RESULT_TIME_FINAL for both, then clear
+                    
+                    title = "Final tournament scores:"
+                    self.show_html_results(results_dict, title, RESULT_TIME_FINAL)
+                    
+                    # Meanwhile, create HTML table for highscores
+                    title = "All time scores:"
+                    self.show_html_results(self.scoreboard, title, RESULT_TIME_FINAL)
+                    
+                    # Reset the previous state, in case someone tries to register before idle loop executes 
+                    previous_state = ""
                 
-                # TOURNAMENT END
-                
-                # Change state to finishing up
-                self.lock.acquire()
-                self.state = FINISHING
-                self.lock.release()
-                
-                
-                # RESULTS
-                
-                # Clear the info text
-                self.update_file_text("", "info.html", 1)
-                
-                if (USE_DISCORD):
-                    # Update Discord presence and show division results:
-                    self.ds_client.set_presence(self.tournament_status())
-                results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 2)
-                
-                # Send update to Discord
-                if (USE_DISCORD):
-                    self.ds_client.queue_message("Division: " + str(self.ongoing_div) + " finished." )
-                
-                # Show division results HTML
-                title = "Division " + str(self.ongoing_div) + " results."
-                self.show_html_results(results_dict, title, RESULT_TIME_DIVISION)
-                
-                
-                self.console_print(MSGNAME,"Showing results")
-                
-                # Send tournament end messages
-                if (USE_TWITCH):
-                    self.twch_client.queue_message("Tournament finished.")
-                if (USE_DISCORD):
-                    self.ds_client.queue_pic(PICS[random.randint(0,len(PICS) - 1)], "Ah that was nice.")
-                # Create results
-                results, results_dict = self.toursys.final_rankings(self.players, self.div)
-                
-                if (USE_DISCORD):
-                    self.ds_client.queue_message(results)
-                
-                # Add scores to highscores and write new scorefile
-                self.__update_scoreboard(self.players)
-                self.__write_scorefile(self.scoreboard, SCOREFILE)
-                
-                # Change state to idle before all time scores.
-                self.lock.acquire()
-                self.state = IDLE
-                self.lock.release()
-                
-                # Update the results.html with results then highscores. 
-                # Hold data for RESULT_TIME_FINAL for both, then clear
-                
-                title = "Final tournament scores:"
-                self.show_html_results(results_dict, title, RESULT_TIME_FINAL)
-                
-                # Meanwhile, create HTML table for highscores
-                title = "All time scores:"
-                self.show_html_results(self.scoreboard, title, RESULT_TIME_FINAL)
-                
-                # Reset the previous state, in case someone tries to register before idle loop executes 
-                previous_state = ""
-                
-                
-                # And back to idle/registration part of the loop...
-                
+
+            # Watchdog system                    
+            # Print system status every DELAY seconds
+            
+            if system_timer > WATCHDOG_DELAY:
+                self.check_mugen()
+                if self.get_status() == IDLE:
+                    status = "Ready - Waiting commands"
+                elif self.get_status() == REGISTRATION:
+                    status = "Registration ongoing"
+                elif self.get_status() == RUNNING:
+                    status = "Tournament running"
+                elif self.get_status() == FINISHING:
+                    status = "Tournament ended, displaying results"
+                else:
+                    status = "Mugen failure, trying to recover"
+                self.console_print(MSGNAME,status)
+                system_timer = 0
+            system_timer += 1                
+            
+            # Wait for one second on each cycle of main loop
+            time.sleep(1)    
+            
+            # End of the main loop. 
 
 
     ################################
@@ -721,6 +772,8 @@ class match_system():
             elif selection == "2":
                 self.op_tournament_reset()
             elif selection == "3":
+                self.op_tournament_hard_reset()
+            elif selection == "4":
                 self.op_mugen_reset()
             else: 
                 print("\n\n")
@@ -730,12 +783,23 @@ class match_system():
     def op_registration_reset(self):
         if self.op_confirm("This will stop the current registration and system returns to ready state"):
             print("Clearing registration...\n")
+            
             self.console_locked = 0
+            print(self.stop_tournament_registration())
+            
         
     def op_tournament_reset(self):
         if self.op_confirm("Current running tournament will be stopped.\nResults data will be lost and system returns to ready state"):
             print("Tournament reset in progress...\n")
             self.console_locked = 0
+            print(self.stop_tournament(False))
+    
+    def op_tournament_hard_reset(self):
+        if self.op_confirm("Current running tournament and Mugen will be stopped.\nResults data will be lost and system returns to ready state"):
+            print("Tournament and Mugen reset in progress...\n")
+            self.console_locked = 0
+            print(self.stop_tournament(True))
+    
         
     def op_mugen_reset(self):
         if self.op_confirm("Current Mugen process will be killed and restarted."):

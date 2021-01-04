@@ -27,7 +27,9 @@ class Tournament:
     def is_running(self):
         return self.running
 
-
+    
+    def stop_tournament(self):
+        self.running = 0
     
     # Update the state of the running tournament
     def __update_tournament_state(self, id, value):
@@ -111,16 +113,22 @@ class Tournament:
         self.__update_tournament_state("Fight", "")
         self.__update_tournament_state("Order", [])
         for i in range(divisions):
+            if not self.is_running():
+                break
             # Update state
             self.__update_tournament_state("Div", i)
             # Play division i
             if i != 0:
                 time.sleep(17)
             self.play_division(players, i, mugen)
+
+        if not self.is_running():
+            self.__consoleprint("Tournament aborted")
+            return
                 
         self.__update_tournament_state("Div", divisions + 1)
         self.running = 0
-        self.__consoleprint ("Closing")
+        self.__consoleprint ("finished tournament")
 
 
         
@@ -133,6 +141,8 @@ class Tournament:
         winner = -1
         
         while(winner == -1):
+            if not self.is_running():
+                break
             mugen.scan()
             time.sleep(0.5)
             mugen.scan()
@@ -142,9 +152,11 @@ class Tournament:
                 self.__consoleprint(" ...Mugen was dead from the get go, waiting for reset")
                 mugen.reset(True)
                 time.sleep(10)
+                mugen.scan()
             if mugen.get_state() == mo.LOADING_STATE:
                 self.__consoleprint(" ...Mugen is still loading")
-                time.sleep(10)
+                time.sleep(5)
+                mugen.scan()
             else:
                 if mugen.get_state() == mo.MENU_STATE:
                     self.__consoleprint(" ...Mugen in main menu")
@@ -178,8 +190,10 @@ class Tournament:
                         time.sleep(2)
                     if winner != -1:
                         self.__consoleprint("Match finished")
+                    elif not self.is_running():
+                        self.__consoleprint("Match aborted by operator")
                     else:
-                        self.__consoleprint("Match inconclusive, probably Mugen failure. Re-Match")
+                        self.__consoleprint("Match inconclusive. Re-Match")
         return winner
         
 
@@ -214,6 +228,8 @@ class Tournament:
                     self.__consoleprint("Division match :" + str(match + 1))
                     if len(order) - match > 1:
                         result = self.play_match(players[order[match]], players[order[match + 1]], division, mugen)
+                        if result == -1 and not self.is_running():
+                            return
                         self.__consoleprint("Match result: " + str(result) + '.')
                         if result == WINNER1:
                             # Player 2 lost, mark the achieved rank in division to player rank data
