@@ -8,22 +8,21 @@ import tournament as tournament
 import random
 from config import *
 
-MSGNAME = "Miyako-Discord"
-DELAY = 30
+# Load discord configuration
+from discord_config import *
 
-
-#game = discord.Game(name="Running tournament. Current division: " + str() + " divisions -- Registered: " + str(len(players)))
-#await client.change_presence(activity=game)
 
 
 class MiyakoBotDiscord(discord.Client):
     def __init__(self, matchsys, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.matchsys = matchsys
+        self.division_count = 0
         self.message_queue = []
         self.pic_message_queue = []
         self.waiting_presence = ""
         self.__consoleprint("Connecting...")
+        
     
     def __consoleprint(self, msg):
         self.matchsys.console_print(MSGNAME, msg)
@@ -53,7 +52,7 @@ class MiyakoBotDiscord(discord.Client):
     # Get client channel
     def get_channel(self):
         guild = discord.utils.get(self.guilds, name=DISCORD_GUILD)
-        return discord.utils.get(guild.text_channels, name='mugen-mayhem')
+        return discord.utils.get(guild.text_channels, name=DISCORD_CHANNELNAME)
 
     # Update the presence to match tournament status
 
@@ -88,13 +87,11 @@ class MiyakoBotDiscord(discord.Client):
         await self.change_presence(activity=idle)
 
         # Join specified channel and send greeting
-        channel = discord.utils.get(guild.text_channels, name='mugen-mayhem')
+        channel = discord.utils.get(guild.text_channels, name=DISCORD_CHANNELNAME)
         if channel:
-            message = "Miyako here-... "
-            await channel.send(message)
-            message = "Dan-kun wanted me to run some matches, so..."
+            await channel.send(DC_GREETING1)
             time.sleep(2)
-            await channel.send(message)
+            await channel.send(DC_GREETING2)
             
         # Startup complete
         
@@ -134,19 +131,19 @@ class MiyakoBotDiscord(discord.Client):
             if payload == " status": # status requested
                 status = self.matchsys.get_status()
                 if status == IDLE:
-                    response = "Idle at the moment"
+                    response = DC_IDLE_RESP
                 elif status == REGISTRATION:
-                    response = "Collecting registrations"
+                    response = DC_REGISTRATION_RESP
                 elif status == RUNNING:
-                    response = "Running tournament"    
+                    response = DC_RUNNING_RESP
                 else:
-                    response = "Something is wrong"
+                    response = DC_ERROR_RESP
 
             elif payload.startswith(" new tournament:"): # New tournament requested
                 if self.matchsys.get_status() == RUNNING:
-                    response = "Previous tournament still running"
+                    response = DC_TOUR_ERR_RUNNING_ERR
                 elif self.matchsys.get_status() == FINISHING:
-                    response = "Previous tournament still finishing. Wait for a moment."
+                    response = DC_TOUR_ERR_FINISHING
                 else:
                     try:
                         # Parse
@@ -157,17 +154,18 @@ class MiyakoBotDiscord(discord.Client):
                         
                     except ValueError:
                         # Typo in message
-                        response = "Correct syntax is 'new tournament: <divisions>', dummy"
+                        response = DC_TOUR_ERR_SYNTAX
                     except AssertionError:
                         # User gave a negative value for divisions...
-                        response = "Ha ha, negative amount of divisions...boy, you're just as keen as I am about this paperwork."
+                        response = DC_TOUR_ERR_NEG_DIV
 
             elif payload.startswith(" register:"): # Registration received
                 if self.matchsys.get_status() == RUNNING:
-                    response = "Tournament has already started."
+                    response = DC_REG_ERR_TOUR_RUNNING
                 elif self.matchsys.get_status() != REGISTRATION:
-                    response = "No tournament registration ongoing."
+                    response = DC_REG_ERR_NO_TOUR
                 else:
+                    self.division_count = self.matchsys.get_divisions()
                     try:
                         # Parse
                         data = payload.split(":")[1:]
@@ -180,48 +178,49 @@ class MiyakoBotDiscord(discord.Client):
                             value = self.matchsys.offset_char(int(i), True)
                             if int(i) < 0:
                                 chars = []
-                                response = "There ain't no contestants with negative numbers, sheesh..."
+                                response = DC_REG_ERR_NEG_ID
                                 break
                             if int(i) > int(self.matchsys.get_max_ID()):
                                 chars = []
-                                await message.channel.send("Highest selectable id is " + self.matchsys.get_max_ID())
+                                await message.channel.send(DC_REG_ERR_MAX_ID + " " + self.matchsys.get_max_ID())
                                 break
                             realchars.append(int(i))
                             chars.append(value)
                         if not self.matchsys.check_player(message.author.name and NO_DUPLICATES):
-                            player = self.matchsys.new_player(message.author.name, chars)
                             # If everything is fine so far, do final checks and then create new player
                             if chars:
+                                player = self.matchsys.new_player(message.author.name, chars)
+
                                 # Register characters first, if the registration fails. It matters not if these are there or not
                                 badchars = self.matchsys.register_chars(realchars)
                                 # Check if registration is accepted.
                             
-                            # If character registration gave us badchars, tell to user
-                            if badchars:
-                                response = "Registration failed, following characters already taken: " + ','.join(str(i) for i in badchars)
-                            else:
-                                # Everything should be fine now, register
-                                if self.matchsys.add_player(player):
-                                    register_message = message.author.name + " registered with characters: " + ','.join(str(i) for i in realchars)
-                                    self.matchsys.queue_register_message(register_message)
+                                # If character registration gave us badchars, tell to user
+                                if badchars:
+                                    response = DC_REG_ERR_ID_TAKEN + " " + ','.join(str(i) for i in badchars)
                                 else:
-                                    # It failed...what gives?
-                                    # So either data was checked badly or registration closed
-                                    # Verify the name in registration, in case some trickery was involved, otherwise the registration closed
-                                    if self.matchsys.check_player(message.author.name) and NO_DUPLICATES:
-                                        response = "Registration in your name already exists."
+                                    # Everything should be fine now, register
+                                    if self.matchsys.add_player(player):
+                                        register_message = message.author.name + " registered with characters: " + ','.join(str(i) for i in realchars)
+                                        self.matchsys.queue_register_message(register_message)
                                     else:
-                                        response = "Registration time has ended, sorry"
+                                        # It failed...what gives?
+                                        # So either data was checked badly or registration closed
+                                        # Verify the name in registration, in case some trickery was involved, otherwise the registration closed
+                                        if self.matchsys.check_player(message.author.name) and NO_DUPLICATES:
+                                            response = DC_REG_ERR_DUPLICATE
+                                        else:
+                                            response = DC_REG_ERR_CLOSED
                         else:
-                            response = "Registration in your name already exists."
+                            response = DC_REG_ERR_DUPLICATE
                     # Responses for bad values
                     
                     # Conversion to int failed, syntax error
                     except ValueError:
-                        response = "Correct syntax is 'register: <character id>, <character 2id>,...', dummy"
+                        response = DC_REG_ERR_SYNTAX
                     # New player creation failed, incorrect number of divisions
                     except IndexError:
-                        response = "You need to give me exactly: " + str(self.matchsys.get_divisions()) + " characters. One for each division"
+                        response = f"You must register {self.division_count} character(s)."
             else:
                 return
             if response:

@@ -1,9 +1,9 @@
-#### Discord bot settings ####
+#### Bot settings ####
 
-USE_DISCORD = 1 # Enable Discord bot
+USE_DISCORD = 0 # Enable Discord bot
 DISCORD_TOKEN=""
 DISCORD_GUILD=""
-
+DISCORD_CHANNELNAME = ''
 
 ## Important pics...because important. ## 
 # One of these is sent to Discord when tournament ends. Feel free to add more/modify these.
