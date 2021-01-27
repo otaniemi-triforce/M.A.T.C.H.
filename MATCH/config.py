@@ -25,14 +25,23 @@ TWITCH_PREFIX = '#'
 
 # Select.def location. If you use themes, this needs to be modified to point to select.def within theme folder (data/<THEME_NAME>/select.def)
 SELECTFILE = "data/select.def"
-CHARCOLS = 10           # Columns in the character grid
-CHARBEFORE = 2          # The number of objects, ie randomselects, before the beginning of characters the choose from
+CHARBEFORE = 0          # The number of objects, ie randomselects, before the beginning of characters the choose from
+
+
+# These numbers should match to what is defined in your system.def for MUGEN
+CHARCOLS = 13           # Columns in the character grid. Should match to "columns" under [Select Info] in your System.def
+# ALSO: set the row number to high enough in the system.def [Select Info] so that columns * rows is equal or higher than the number of characters you have.
+# Cursor starting positions, [row, column]
+P1_CURSOR_START = [0,0] # Should match to "p1.cursor.startcell" in system.def [Select Info]
+P2_CURSOR_START = [0,1] # Should match to "p2.cursor.startcell" in system.def [Select Info]
+
 
 LOGFILE = "mugen.log"               # Path to log file to monitor
 CHARFOLDER = "chars"                # Chars folder
 CHARFILE = "charlist.txt"           # File to write list of characters to
 BADCHARFILE = "badchar.txt"         # Path to a file containing list of bad characters
 
+# Make sure these match to what you have configured for player 1
 OK = "r"            # Button to press for selecting
 NEXT = 'd'          # Button to press to move right
 PREV = 'a'          # Button to press to move left
