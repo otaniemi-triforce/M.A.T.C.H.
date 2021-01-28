@@ -112,17 +112,20 @@ class match_system():
             else:
                 endline = False
                 html += char
-        f = open(file, "wt")
-        # Write headers and then content
-        f.write('<head><meta http-equiv="refresh" content=' + str(time) +'>')
-        f.write('<link rel="stylesheet" type="text/css" href="style.css">')
-        f.write('</head><body>')
-        f.write(html)
-        f.write('</body>')
-        
-        f.close()
-        
-        
+        try:
+            f = open(file, "wt", encoding="utf-8")
+            # Write headers and then content
+            f.write('<head><meta http-equiv="refresh" content=' + str(time) +'>')
+            f.write('<link rel="stylesheet" type="text/css" href="style.css">')
+            f.write('</head><body>')
+            f.write(html)
+            f.write('</body>')
+            
+            f.close()
+        except UnicodeEncodeError:
+            self.console_print(MSGNAME, "Character encoding error while updating file: " + file)
+            
+            
     ########################
     # SCOREBOARD FUNCTIONS #
     ########################
