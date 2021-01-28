@@ -103,8 +103,8 @@ class MugenOperator():
         self.win2_ptr = self.p.get_pointer(WIN_ADDRESS, [0x00008728])
 
         self.loadingchar = 2
-        self.player1_cursor = [0,0]
-        self.player2_cursor = [1,0]
+        self.player1_cursor = P1_CURSOR_START
+        self.player2_cursor = P2_CURSOR_START
         self.state = LOADING_STATE
     
     # Check if MUGEN is still alive
@@ -180,8 +180,8 @@ class MugenOperator():
             # Main menu loaded
             if(line.startswith("Mode select init")):
                 self.state = MENU_STATE
-                self.player1_cursor = [0,0]
-                self.player2_cursor = [1,0]
+                self.player1_cursor = P1_CURSOR_START
+                self.player2_cursor = P2_CURSOR_START
                 continue
 
             # Character select loaded
@@ -266,50 +266,50 @@ class MugenOperator():
         pos = self.calculate_wanted_point(charnum)
     # Player 1
         if(player == PLAYER1):
-            if(self.player1_cursor[1] == self.lastrow):  # Move up to a full row
+            if(self.player1_cursor[0] == self.lastrow):  # Move up to a full row
                 self.press(UP,1)
-                self.player1_cursor[1] -= 1
+                self.player1_cursor[0] -= 1
             while(self.player1_cursor != pos):
-                if(pos[0] < self.player1_cursor[0]):
-                    self.press(PREV,1)
-                    self.player1_cursor[0] -= 1
-                    continue
-                elif(pos[0] > self.player1_cursor[0]):
-                    self.press(NEXT,1)
-                    self.player1_cursor[0] += 1
-                    continue
-
                 if(pos[1] < self.player1_cursor[1]):
-                    self.press(UP,1)
+                    self.press(PREV,1)
                     self.player1_cursor[1] -= 1
                     continue
                 elif(pos[1] > self.player1_cursor[1]):
-                    self.press(DOWN,1)
+                    self.press(NEXT,1)
                     self.player1_cursor[1] += 1
+                    continue
+
+                if(pos[0] < self.player1_cursor[0]):
+                    self.press(UP,1)
+                    self.player1_cursor[0] -= 1
+                    continue
+                elif(pos[0] > self.player1_cursor[0]):
+                    self.press(DOWN,1)
+                    self.player1_cursor[0] += 1
                     continue
             self.char1 = charnum
     # Player 2
         elif(player == PLAYER2):
-            if(self.player2_cursor[1] == self.lastrow):  # Move up to a full row
+            if(self.player2_cursor[0] == self.lastrow):  # Move up to a full row
                 self.press(UP,1)
-                self.player2_cursor[1] -= 1
+                self.player2_cursor[0] -= 1
             while(self.player2_cursor != pos):
-                if(pos[0] < self.player2_cursor[0]):
-                    self.press(PREV,1)
-                    self.player2_cursor[0] -= 1
-                    continue
-                elif(pos[0] > self.player2_cursor[0]):
-                    self.press(NEXT,1)
-                    self.player2_cursor[0] += 1
-                    continue
-
                 if(pos[1] < self.player2_cursor[1]):
-                    self.press(UP,1)
+                    self.press(PREV,1)
                     self.player2_cursor[1] -= 1
                     continue
                 elif(pos[1] > self.player2_cursor[1]):
-                    self.press(DOWN,1)
+                    self.press(NEXT,1)
                     self.player2_cursor[1] += 1
+                    continue
+
+                if(pos[0] < self.player2_cursor[0]):
+                    self.press(UP,1)
+                    self.player2_cursor[0] -= 1
+                    continue
+                elif(pos[0] > self.player2_cursor[0]):
+                    self.press(DOWN,1)
+                    self.player2_cursor[0] += 1
                     continue
             self.char2 = charnum
         else:
@@ -320,7 +320,7 @@ class MugenOperator():
     def calculate_wanted_point(self, charnum):
         col = (charnum+CHARBEFORE) % CHARCOLS
         row = math.floor((charnum+CHARBEFORE)/CHARCOLS)
-        return [col,row] 
+        return [row,col] 
 
     # Presses a button n times
     def press(self, button, times=1):
