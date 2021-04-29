@@ -89,19 +89,20 @@ class match_system():
 
 
 
-    # Function to control console printouts.
     
     def console_print(self, sender, message):
+        """Function to control console printouts. Decorates messages with sender"""
+        
         if not self.console_locked:
             print(str(sender) + ": " + str(message))
 
 
-    # Update/create HTML file.
-    # Text is the content, time is the automatic refresh time for the page
-    # Idea here is that the page can be empty with minimal refresh time making it responsive to updates
-    # When needed, the content can be updated and shown for refresh time.
-
-    def update_file_text(self, text, file, time):
+    def update_html_content(self, text, file, time):
+        """Update/create HTML file.
+        Text is the content, time is the automatic refresh time for the page
+        Idea here is that the page can be empty with minimal refresh time making it responsive to updates
+        When needed, the content can be updated and shown for refresh time."""
+        
         html = ""
         endline = True
         for char in text:
@@ -114,7 +115,7 @@ class match_system():
                 endline = False
                 html += char
         try:
-            f = open(file, "wt", encoding="utf-8")
+            f = open(file, "w", encoding="utf-8")
             # Write headers and then content
             f.write('<head><meta http-equiv="refresh" content=' + str(time) +'>')
             f.write('<link rel="stylesheet" type="text/css" href="style.css">')
@@ -126,7 +127,16 @@ class match_system():
         except UnicodeEncodeError:
             self.console_print(MSGNAME, "Character encoding error while updating file: " + file)
             
-            
+    
+    def update_file(self, text, file):
+        """Writes a simple file"""
+        try:
+            f = open(file, "w", encoding="utf-8")
+            f.write(text)
+            f.close()
+        except UnicodeEncodeError:
+            self.console_print(MSGNAME, "Character encoding error while updating file: " + file)
+    
     ########################
     # SCOREBOARD FUNCTIONS #
     ########################
@@ -196,11 +206,11 @@ class match_system():
         results_html += self.__scoretable(results_dict) + "</div>"
         
         # Update page with results and automatic refresh of short holdtime
-        self.update_file_text(results_html, "results.html", display_time)
+        self.update_html_content(results_html, "results.html", display_time)
         # Wait few seconds for the page to update
         time.sleep(3)
         # Write empty page with auto refresh of 1 second. This will be shown after the auto-refresh of the first update is reached
-        self.update_file_text("", "results.html", 1)
+        self.update_html_content("", "results.html", 1)
 
         # Wait for the rest of the results holdtime.
         if display_time > 2:
@@ -381,7 +391,7 @@ class match_system():
                 if fight:
                     state_fight =  fight[0][0] + " (" + str(self.offset_char(fight[0][1], False)) + ") VS " 
                     state_fight += fight[1][0] + " (" + str(self.offset_char(fight[1][1], False)) + ")"
-                    self.update_file_text("Current match: " + state_fight, "info.html", 5)
+                    self.update_file("Current match: " + state_fight, "info.txt")
                 else:
                     state_fight = "-"
                 new_presence = "Running tournament. Match: " + state_fight + " -- Division: " + str(state_div + 1) + " Round : " + str(state_round)
@@ -586,8 +596,8 @@ class match_system():
         
         # Reset the HTML outputs to empty content and 1 second refresh
         
-        self.update_file_text("", "results.html", 1)
-        self.update_file_text("", "info.html", 1)
+        self.update_html_content("", "results.html", 1)
+        self.update_file("", "info.txt")
         previous_state = self.get_status()
         
         
@@ -601,7 +611,7 @@ class match_system():
                 
                 # Registration started, update files & clients
                 if self.get_status() == REGISTRATION:
-                    self.update_file_text("Registration in progress", "info.html", 8)                    
+                    self.update_file("Registration in progress", "info.txt")                    
                     # Send message to clients. Twitch is needs the message in two parts
                     message = "Registration is now open for tournament with " + str(self.div) + " divisions.\nCharacter ID's 0-" + self.get_max_ID() + " are accepted.\n"
                     ds_message = "" + message
@@ -644,7 +654,7 @@ class match_system():
                             self.ds_client.queue_message(self.time_warning(interval))
                         if (USE_TWITCH):
                             self.twch_client.queue_message(self.time_warning(interval))
-                        self.update_file_text("Registration in progress. Tournament starting in " + str(interval), "info.html", 8)
+                        self.update_file("Registration in progress. Tournament starting in " + str(interval), "info.txt")
                 self.__timer_count -= 1
 
             
@@ -676,7 +686,7 @@ class match_system():
                     # RESULTS
                     
                     # Clear the info text
-                    self.update_file_text("", "info.html", 1)
+                    self.update_file("", "info.txt")
                     
                     if (USE_DISCORD):
                         # Update Discord presence and show division results:
