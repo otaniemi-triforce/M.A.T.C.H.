@@ -20,10 +20,11 @@ CONSOLE_STRUCTURE  = "\n\n\n"
 CONSOLE_STRUCTURE += "Operator console\n"
 CONSOLE_STRUCTURE += "----------------\n"
 CONSOLE_STRUCTURE += "Command options:\n"
-CONSOLE_STRUCTURE += "  1. Reset registration\n"
-CONSOLE_STRUCTURE += "  2. Halt tournament\n"
-CONSOLE_STRUCTURE += "  3. Halt tournament and restart Mugen\n"
-CONSOLE_STRUCTURE += "  4. Restart mugen\n"
+CONSOLE_STRUCTURE += "  1. Force tournament start\n"
+CONSOLE_STRUCTURE += "  2. Reset registration\n"
+CONSOLE_STRUCTURE += "  3. Halt tournament\n"
+CONSOLE_STRUCTURE += "  4. Halt tournament and restart Mugen\n"
+CONSOLE_STRUCTURE += "  5. Restart mugen\n"
 CONSOLE_STRUCTURE += "Type option number and press enter to execute.\n"
 CONSOLE_STRUCTURE += "Empty or invalid option closes console.\n"
 
@@ -771,12 +772,14 @@ class match_system():
             selection = input(">>")
             
             if selection == "1":
-                self.op_registration_reset()
+                self.force_tournament_start()
             elif selection == "2":
-                self.op_tournament_reset()
+                self.op_registration_reset()
             elif selection == "3":
-                self.op_tournament_hard_reset()
+                self.op_tournament_reset()
             elif selection == "4":
+                self.op_tournament_hard_reset()
+            elif selection == "5":
                 self.op_mugen_reset()
             else: 
                 print("\n\n")
@@ -789,7 +792,22 @@ class match_system():
             
             self.console_locked = 0
             print(self.stop_tournament_registration())
+    
+
+    def force_tournament_start(self):
+        if self.get_status() != REGISTRATION:
+            print("Registration not running.\n\n")
+            return False
+        if len(self.players) < 2 :
+            print("Too few registrations. Unable to force start.\n\n")
+            return False
+        if self.op_confirm(f"This will start the tournament with {len(self.players)} players."):
+            print("Force starting tournament\n")
             
+            self.console_locked = 0
+            self.__timer_count = 1
+            return True
+    
         
     def op_tournament_reset(self):
         if self.op_confirm("Current running tournament will be stopped.\nResults data will be lost and system returns to ready state"):
