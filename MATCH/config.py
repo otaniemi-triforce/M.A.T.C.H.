@@ -96,6 +96,14 @@ RECOVERY_TIME = 500
 # Watchdog delay. This determines the M.A.T.C.H. status interval in seconds.
 WATCHDOG_DELAY = 60
 
+# Filenames used for writing results etc
+RESULTS_HTML = "results.html"
+RESULTS_TXT = "results.txt"
+INFO_TXT = "info.txt"
+
+# Results in HTML or txt
+USE_HTML = False
+
 # M.A.T.C.H. Status codes, no need to ever touch these
 IDLE = 0
 REGISTRATION = 1
