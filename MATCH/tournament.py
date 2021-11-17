@@ -2,12 +2,14 @@ import random
 import math
 import time
 import mugenoperator as mo
+from config import *
 
 
 
 WINNER1 = 1
 WINNER2 = 2
 POW2 = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
+MAX_ROUNDS = 32 # Maximum number of tournament rounds. 32 is massive tournament
 MSGNAME = "Tournament control"
 
 
@@ -50,19 +52,19 @@ class Tournament:
 
     # Prints out the ranking of the given division
     def rankings(self, players, division):
-        self.__consoleprint("Rankings being generated for: " + str(division + 1))
+        self.__consoleprint(f"Rankings being generated for: {division + 1}")
         score_dict = {}
      
-        count = 32
+        count = MAX_ROUNDS
         position = 1
         message = ("---------\n")
-        message += ("Division " + str(division + 1) + " finished!\n")
+        message += (f"Division {division + 1} finished!\n")
         message += ("Rankings:\n---------\n")
         while(count):
             for player in players:
                 score_dict[player["Name"]] = player["Rank"][division]
                 if player["Rank"][division] == count:
-                    message += str(position) + '. ' + player["Name"] + ' - Tournament round ' + str(player["Rank"][division]) + "\n"
+                    message += f"{position:2}. {player['Name']:20} Tournament round {player['Rank'][division]}\n"
                     position += 1
             count -= 1
         return message, score_dict
@@ -73,25 +75,27 @@ class Tournament:
         score = []
         score_dict = {}
         self.__consoleprint("Final rankings")
-        tmp = 0
-        for player in players:
+        
+        for idx, player in enumerate(players):
             score.append(0)
             name = player["Name"]
             score_dict[name] = 0
             for i in range(div):
-                score[tmp] += player["Rank"][i]
-                score_dict[name] += player["Rank"][i]
-            tmp += 1
+                score[idx] += player["Rank"][i]
+            score_dict[name] = score[idx]
+                
+
         count = 10 * div
         position = 1
         message = "FINAL STANDINGS:\n----------------\n"
+        
         while(count):
-            for i in range(len(players)):
+            for i, player in enumerate(players):
                 if score[i] == count:
-                    rank = [str(i) for i in players[i]["Rank"]]
-                    message += str(position) + '. ' + players[i]["Name"] + ' - Total score: ' + str(score[i]) + "\n"
+                    rank = [str(x) for x in player["Rank"]]
+                    message += f"{position:2}. {player['Name']:20} Total score: {score[i]}\n"
                     position += 1
-            count -= 1
+                count -= 1
         return message, score_dict
 
 
@@ -119,7 +123,7 @@ class Tournament:
             self.__update_tournament_state("Div", i)
             # Play division i
             if i != 0:
-                time.sleep(17)
+                time.sleep(RESULT_TIME_DIVISION) #MAGIC NUMBERS YAY!!!! Replace with constant time
             self.play_division(players, i, mugen)
 
         if not self.is_running():
