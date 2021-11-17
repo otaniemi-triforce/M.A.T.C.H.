@@ -4,6 +4,7 @@ import tournament as tournament
 import random
 import mugenoperator as mo
 import asyncio
+import filewriter
 
 from config import *
 
@@ -53,6 +54,8 @@ class match_system():
         self.register_messages = []
         self.division_complete = False
         
+        self.filewriter = filewriter.FileWriter()
+        self.filewriter.deamon = True
         
         self.scoreboard = self.__read_scorefile(SCOREFILE)
         self.ds_client = ""
@@ -89,6 +92,7 @@ class match_system():
 
 
 
+                                            
     
     def console_print(self, sender, message):
         """Function to control console printouts. Decorates messages with sender"""
@@ -97,13 +101,16 @@ class match_system():
             print(str(sender) + ": " + str(message))
 
 
-    def update_html_content(self, text, file, time):
+    def update_html_content(self, text, time):
         """Update/create HTML file.
         Text is the content, time is the automatic refresh time for the page
         Idea here is that the page can be empty with minimal refresh time making it responsive to updates
         When needed, the content can be updated and shown for refresh time."""
         
-        html = ""
+        html = f'<head><meta http-equiv="refresh" content={time}>'
+        html += f'<link rel="stylesheet" type="text/css" href="style.css">'
+        html += f'</head><body>'
+        
         endline = True
         for char in text:
             if char == '\n':
@@ -114,28 +121,29 @@ class match_system():
             else:
                 endline = False
                 html += char
-        try:
-            f = open(file, "w", encoding="utf-8")
-            # Write headers and then content
-            f.write('<head><meta http-equiv="refresh" content=' + str(time) +'>')
-            f.write('<link rel="stylesheet" type="text/css" href="style.css">')
-            f.write('</head><body>')
-            f.write(html)
-            f.write('</body>')
+        
+        html +='</body>'
+        
+        self.filewriter.queue(html, 0, RESULTS_HTML)
+                                                                               
+                                    
+                         
+                              
             
-            f.close()
-        except UnicodeEncodeError:
-            self.console_print(MSGNAME, "Character encoding error while updating file: " + file)
+                     
+                                  
+                                                                                                
             
-    
-    def update_file(self, text, file):
-        """Writes a simple file"""
-        try:
-            f = open(file, "w", encoding="utf-8")
-            f.write(text)
-            f.close()
-        except UnicodeEncodeError:
-            self.console_print(MSGNAME, "Character encoding error while updating file: " + file)
+            
+    def output_results(self, results_dict, title, time):
+        if USE_HTML:
+            self.show_html_results(results_dict, title, time)
+        else:
+            #just write file
+            scores = f"\n{'':2}{title}\n -------------------------------------- \n"
+            scores += self.__create_scoretable(results_dict)
+            self.filewriter.queue(scores, RESULT_TIME_DIVISION, RESULTS_TXT)
+ 
     
     ########################
     # SCOREBOARD FUNCTIONS #
@@ -172,25 +180,44 @@ class match_system():
     def __update_scoreboard(self, players):
         for player in players:
             score = 0
-            for p in player["Rank"]:
-               score += p
+            for rank in player["Rank"]:
+               score += rank
             if player["Name"] in self.scoreboard:
                 self.scoreboard[player["Name"]] += score 
             else:
                 self.scoreboard[player["Name"]] = score
 
+
+    # Generates HTML table with scores from dictionary {"Name": score}
+
+    def __create_scoretable(self, dict):
+        scoretable = ""
+        rankings = [k for k in sorted(dict.items(), key=lambda item: item[1], reverse=True)]
+        # Limit the table size to RANKING_LIST_MAX
+        size = 0
+        for i, player in enumerate(rankings):
+            if i > RANKING_LIST_MAX:
+                break
+            scoretable += f"{'':4}{(i + 1):3}. {player[0]:20} {player[1]:3}{'':4}\n"
+            size = i
+        # Add padding to text to keep the number of rows constant
+        while(size < RANKING_LIST_MAX + 2):
+            scoretable += "\n"
+            size += 1
+        return scoretable
+
         
     # Generates HTML table with scores from dictionary {"Name": score}
 
-    def __scoretable(self, dict):
+    def __create_html_scoretable(self, dict):
         table = "<table>"
-        count = 1
+        rankings = [k for k in sorted(dict.items(), key=lambda item: item[1], reverse=True)]
         # Limit the table size to RANKING_LIST_MAX
-        for player in [k for k in sorted(dict.items(), key=lambda item: item[1], reverse=True)]:
-            if count > RANKING_LIST_MAX:
+        for i, player in enumerate(rankings):
+            if i > RANKING_LIST_MAX:
                 break
-            table += "<tr><td>" + str(count) + ".</td><td>" + player[0] + "</td><td>" + str(player[1]) + "</td></tr>"
-            count += 1
+            table += f"<tr><td>{i}</td><td>{player[0]}</td><td>{player[1]}</td></tr>"
+                      
         table += "</table>"
         return table
 
@@ -201,12 +228,12 @@ class match_system():
         # Right, time to create and show the results with some HTML trickery
         # First create the page structure. Put the content in div to enable different style
         
-        results_html = "<div> " + str(title) 
+        results_html = "<div><h3>{title}</h3>" 
         results_html += "\n--------------\n"
-        results_html += self.__scoretable(results_dict) + "</div>"
+        results_html += self.__create_html_scoretable(results_dict) + "</div>"
         
         # Update page with results and automatic refresh of short holdtime
-        self.update_html_content(results_html, "results.html", display_time)
+        self.update_html_content(results_html, RESULTS_HTML, display_time)
         # Wait few seconds for the page to update
         time.sleep(3)
         # Write empty page with auto refresh of 1 second. This will be shown after the auto-refresh of the first update is reached
@@ -391,7 +418,7 @@ class match_system():
                 if fight:
                     state_fight =  fight[0][0] + " (" + str(self.offset_char(fight[0][1], False)) + ") VS " 
                     state_fight += fight[1][0] + " (" + str(self.offset_char(fight[1][1], False)) + ")"
-                    self.update_file("Current match: " + state_fight, "info.txt")
+                    self.filewriter.queue(f"Current match: {state_fight}", 0, INFO_TXT)
                 else:
                     state_fight = "-"
                 new_presence = "Running tournament. Match: " + state_fight + " -- Division: " + str(state_div + 1) + " Round : " + str(state_round)
@@ -449,8 +476,8 @@ class match_system():
                             self.ds_client.queue_message(text + " finished." )
                         
                         # Show division results HTML
-                        self.show_html_results(results_dict, text + " results.", RESULT_TIME_DIVISION)
-                
+                        self.output_results(results_dict, f"{text} results.", RESULT_TIME_DIVISION)
+                        
                 # Timer reset
                 if status != self.status:
                     self.status = status
@@ -560,13 +587,19 @@ class match_system():
             self.ds_client = miyako_discord.MiyakoBotDiscord(self)
         if (USE_TWITCH):
             self.twch_client = miyako_twitch.MiyakoBotTwitch(self)
+        
+        # Start the filewriter        
+        self.filewriter.start()
 
-        # Start main loop
+        # Create and start main loop
         main_thread = threading.Thread(target=self.main_loop, args=())
         main_thread.start()
         
+        # Create thread for interactions
         interaction_thread = threading.Thread(target=self.operator_loop, args=())
+        interaction_thread.daemon = True
         interaction_thread.start()
+        
         
         loop = asyncio.get_event_loop()
         if (USE_DISCORD):
@@ -596,8 +629,11 @@ class match_system():
         
         # Reset the HTML outputs to empty content and 1 second refresh
         
-        self.update_html_content("", "results.html", 1)
-        self.update_file("", "info.txt")
+        if USE_HTML:
+            self.update_html_content("", 1)
+        else:
+            self.filewriter.queue("", 0, RESULTS_TXT)
+        self.filewriter.queue("", 0, INFO_TXT)
         previous_state = self.get_status()
         
         
@@ -611,7 +647,7 @@ class match_system():
                 
                 # Registration started, update files & clients
                 if self.get_status() == REGISTRATION:
-                    self.update_file("Registration in progress", "info.txt")                    
+                    self.filewriter.queue("Registration in progress", 0, INFO_TXT)                    
                     # Send message to clients. Twitch is needs the message in two parts
                     message = "Registration is now open for tournament with " + str(self.div) + " divisions.\nCharacter ID's 0-" + self.get_max_ID() + " are accepted.\n"
                     ds_message = "" + message
@@ -654,7 +690,7 @@ class match_system():
                             self.ds_client.queue_message(self.time_warning(interval))
                         if (USE_TWITCH):
                             self.twch_client.queue_message(self.time_warning(interval))
-                        self.update_file("Registration in progress. Tournament starting in " + str(interval), "info.txt")
+                        self.filewriter.queue(f"Registration in progress. Tournament starting in {interval}", 0, "info.txt")
                 self.__timer_count -= 1
 
             
@@ -670,9 +706,10 @@ class match_system():
                 self.lock.release()
                 self.__reset_timers()
                 
+                # Run tournament
                 self.run_tournament()
                 
-                # Check if the toursys was killed by operator.
+                # Check if the toursys was killed by operator. Specifically that state is still RUNNING
                 if self.state == RUNNING:
                 
                     # TOURNAMENT END
@@ -686,7 +723,7 @@ class match_system():
                     # RESULTS
                     
                     # Clear the info text
-                    self.update_file("", "info.txt")
+                    self.filewriter.queue("", 0, INFO_TXT)
                     
                     if (USE_DISCORD):
                         # Update Discord presence and show division results:
@@ -699,7 +736,7 @@ class match_system():
                     
                     # Show division results HTML
                     title = "Division " + str(self.ongoing_div) + " results."
-                    self.show_html_results(results_dict, title, RESULT_TIME_DIVISION)
+                    self.output_results(results_dict, title, RESULT_TIME_DIVISION)
                     
                     
                     self.console_print(MSGNAME,"Showing results")
@@ -728,11 +765,11 @@ class match_system():
                     # Hold data for RESULT_TIME_FINAL for both, then clear
                     
                     title = "Final tournament scores:"
-                    self.show_html_results(results_dict, title, RESULT_TIME_FINAL)
+                    self.output_results(results_dict, title, RESULT_TIME_DIVISION)
                     
                     # Meanwhile, create HTML table for highscores
                     title = "All time scores:"
-                    self.show_html_results(self.scoreboard, title, RESULT_TIME_FINAL)
+                    self.output_results(self.scoreboard, title, RESULT_TIME_DIVISION)
                     
                     # Reset the previous state, in case someone tries to register before idle loop executes 
                     previous_state = ""
