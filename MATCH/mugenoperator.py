@@ -27,6 +27,7 @@ SELECT_STATE = 2
 VS_STATE = 3
 FIGHT_STATE = 4
 DEAD_STATE = 5
+ERROR_STATE = 6
 
 # Wait this long until trying to start new MUGEN process (* WAIT seconds).
 GRACETIME = 2
@@ -66,7 +67,7 @@ class MugenOperator():
                 self.debug("MUGEN killed.")
             except PermissionError:
                 self.debug("Tried to kill MUGEN, but it seems to be already dead.")
-                pass
+
         # If mugen is not already running (in most cases it shouldn't be), start it
         if (not self.are_you_still_there()):
             logpurged = False
@@ -77,13 +78,15 @@ class MugenOperator():
                     logpurged = True
                 except PermissionError: # Someone is still holding the file, give it a sec
                     sleep(1)
-                    pass
+
             self.index = 0
             os.startfile(PROCESS_NAME)  # Start MUGEN
         else:   # MUGEN is running, set current index to end of current logfile
-            f = open(LOGFILE)
+            f = open(LOGFILE, encoding="utf8", errors="replace")
             self.index = len(f.readlines())-1
             f.close()
+        if kill:    # Just to make sure
+            self.index = 0
         processloaded = False
         gracetime = 0
         while not processloaded or self.p == None or self.window == 0:
@@ -103,8 +106,8 @@ class MugenOperator():
         self.win2_ptr = self.p.get_pointer(WIN_ADDRESS, [0x00008728])
 
         self.loadingchar = 2
-        self.player1_cursor = P1_CURSOR_START
-        self.player2_cursor = P2_CURSOR_START
+        self.player1_cursor = P1_CURSOR_START.copy()
+        self.player2_cursor = P2_CURSOR_START.copy()
         self.state = LOADING_STATE
     
     # Check if MUGEN is still alive
@@ -166,13 +169,16 @@ class MugenOperator():
         self.p.write(self.p.get_pointer(THREADSTACK0, [0x917]),position[1])
 
     # Scan the log file and do operations based on lines there
-    def scanlines(self):        
+    def scanlines(self, doublecheck = True):        
         f = open(LOGFILE,'r', encoding="utf8", errors="replace")   # Open logfile for reading
         lines = f.readlines()           # Read all lines to memory
         f.close()                       # Close the file for now   
 
+        if self.index >= len(lines)-1 and doublecheck:
+            self.index = len(lines)-1              # Read the last line again, just in case it has changed
+            
         while(self.index < len(lines)):
-            line = lines[self.index]
+            line = lines[self.index]   
             self.index += 1
             
             # DETECT STATE CHANGES
@@ -180,8 +186,8 @@ class MugenOperator():
             # Main menu loaded
             if(line.startswith("Mode select init")):
                 self.state = MENU_STATE
-                self.player1_cursor = P1_CURSOR_START
-                self.player2_cursor = P2_CURSOR_START
+                self.player1_cursor = P1_CURSOR_START.copy()
+                self.player2_cursor = P2_CURSOR_START.copy()
                 continue
 
             # Character select loaded
@@ -190,7 +196,7 @@ class MugenOperator():
                 continue
                 
             # Fight
-            elif(line.startswith("Game loop init")):
+            elif(line.startswith("Match loop init")):
                 self.state = FIGHT_STATE
                 continue
             
@@ -226,7 +232,7 @@ class MugenOperator():
                 if(len(line.split("Character")) == 2):
                     self.winner = int(self.loadingchar==1)+1  # Mark the other player as winner
                     self.debug("ERROR: failed to load character for P"+str(self.loadingchar))
-                    bchar = open(BADCHARFILE,'a')
+                    bchar = open(BADCHARFILE,'a', encoding="utf8", errors="ignore")
                     bchar.write(line)
                     bchar.close()
                 # Something else
@@ -243,24 +249,6 @@ class MugenOperator():
         if(DEBUG):
             self.__consoleprint(msg)
 
-    # Memory based character load, memory addresses are machine specific! Not used in this version.
-    '''
-    def select_char(self,charnum, player):
-    # Player 1
-        if(player == PLAYER1):
-            char1_ptr = self.p.get_pointer(THREADSTACK0, [0x354 + 0x10]) # Get pointer to the char variable in memory
-            self.press(OK,1) # Accept anything
-            self.char1 = charnum
-            if(not self.p.write(char1_ptr,charnum)): # Overwrite whatever was just accepted
-                debug("Failed to write P1 character!")
-    # Player 2
-        elif(player == PLAYER2):
-            char2_ptr = self.p.get_pointer(THREADSTACK0, [0x1E30 + 0x10]) # Get pointer to the char variable in memory
-            self.press(OK,1) # Accept anything
-            self.char2 = charnum
-            if(not self.p.write(char2_ptr,charnum)): # Overwrite whatever was just accepted
-                debug("Failed to write P2 character!")
-    '''
 
     def select_char(self, charnum, player):
         pos = self.calculate_wanted_point(charnum)
@@ -313,7 +301,7 @@ class MugenOperator():
                     continue
             self.char2 = charnum
         else:
-            debug("Can only select character for player 1 or 2. Check your inputs for typos!")
+            self.debug("Can only select character for player 1 or 2. Check your inputs for typos!")
         self.press(OK,1)    # Select the character
 
     # Calculate the wanted position for the cursor
@@ -324,13 +312,23 @@ class MugenOperator():
 
     # Presses a button n times
     def press(self, button, times=1):
-        win32api.SendMessage(self.window, win32con.WM_KEYDOWN, ord(button.upper()), 1)
-        sleep(HOLDTIME)
-        win32api.SendMessage(self.window, win32con.WM_KEYUP, ord(button.upper()), 1)
+        if not isinstance(button, int):
+            win32api.SendMessage(self.window, win32con.WM_KEYDOWN, ord(button.upper()), 1)
+            sleep(HOLDTIME)
+            win32api.SendMessage(self.window, win32con.WM_KEYUP, ord(button.upper()), 1)
+        else:
+            win32api.SendMessage(self.window, win32con.WM_KEYDOWN, button, 1)
+            sleep(HOLDTIME)
+            win32api.SendMessage(self.window, win32con.WM_KEYUP, button, 1)
 
     # Checks the select file, returns ID of last character, and writes list of chars to file if params true
     def check_characterlist(self, write_to_file = True, includepath = True):
-        f = open(SELECTFILE,'r')
+        try:
+            f = open(SELECTFILE,'r')
+        except:
+            self.debug("ERROR: select.def could not be opened!")
+            self.state = ERROR_STATE
+            return
         lines = f.readlines()
         f.close()
         if(write_to_file):
@@ -392,11 +390,12 @@ class MugenOperator():
         return index - 1
 
     # Returns the number of winning player (1 or 2), -1 if no match has ended since last scan, 0 if draw (not sure when that would happen) 
-    def scan(self):
-        self.scanlines()
+    def scan(self, doublecheck = True):
+        self.scanlines(doublecheck)
         if(self.state == MENU_STATE):
             self.press(OK,1)
             sleep(1)    # Ensures that mugen has time to move to a new state before next scan
+            
         elif(self.state == SELECT_STATE):
             if(len(self.player1_chars) > 0 and len(self.player2_chars) > 0):
                 self.press(OK,1) # TEAM MODE for P1 (single)
