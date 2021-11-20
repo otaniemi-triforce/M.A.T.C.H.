@@ -74,6 +74,8 @@ class MiyakoBotDiscord(commands.Cog):
     async def on_command_error(self, ctx, error):
         if isinstance(error, commands.CommandNotFound):
             return
+        if isinstance(error, commands.MissingRequiredArgument):
+            return
         raise error
     
     
