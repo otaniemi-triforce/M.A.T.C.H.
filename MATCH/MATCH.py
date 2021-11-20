@@ -10,6 +10,7 @@ from config import *
 
 if (USE_DISCORD):
     import miyako_discord
+    from discord.ext import commands
 if (USE_TWITCH):
     import miyako_twitch
 
@@ -28,7 +29,6 @@ CONSOLE_STRUCTURE += "  4. Halt tournament and restart Mugen\n"
 CONSOLE_STRUCTURE += "  5. Restart mugen\n"
 CONSOLE_STRUCTURE += "Type option number and press enter to execute.\n"
 CONSOLE_STRUCTURE += "Empty or invalid option closes console.\n"
-
 
 
 class match_system():
@@ -92,7 +92,6 @@ class match_system():
 
 
 
-                                            
     
     def console_print(self, sender, message):
         """Function to control console printouts. Decorates messages with sender"""
@@ -125,14 +124,6 @@ class match_system():
         html +='</body>'
         
         self.filewriter.queue(html, 0, RESULTS_HTML)
-                                                                               
-                                    
-                         
-                              
-            
-                     
-                                  
-                                                                                                
             
             
     def output_results(self, results_dict, title, time):
@@ -217,7 +208,6 @@ class match_system():
             if i > RANKING_LIST_MAX:
                 break
             table += f"<tr><td>{i}</td><td>{player[0]}</td><td>{player[1]}</td></tr>"
-                      
         table += "</table>"
         return table
 
@@ -291,10 +281,14 @@ class match_system():
     # Check if player is already registered
     
     def check_player(self, name):
-        for player in self.players:
-            if player["Name"] == name:
-                return True
+        print(f"Checking {name}")
+        if NO_DUPLICATES:
+            for player in self.players:
+                if player["Name"] == name:
+                    return True
+        print(f"Checking {name}...returning false")
         return False
+        
 
                 
     # Register characters, return list of characters that failed
@@ -584,7 +578,9 @@ class match_system():
          
         # Init bots
         if (USE_DISCORD):
-            self.ds_client = miyako_discord.MiyakoBotDiscord(self)
+            bot = commands.Bot(command_prefix="!")
+            self.ds_client = miyako_discord.MiyakoBotDiscord(bot, self)
+            bot.add_cog(self.ds_client)
         if (USE_TWITCH):
             self.twch_client = miyako_twitch.MiyakoBotTwitch(self)
         
@@ -603,7 +599,7 @@ class match_system():
         
         loop = asyncio.get_event_loop()
         if (USE_DISCORD):
-            loop.create_task(self.ds_client.start(DISCORD_TOKEN))
+            loop.create_task(bot.start(DISCORD_TOKEN))
         if (USE_TWITCH):
             loop.create_task(self.twch_client.start())
         if (USE_TWITCH or USE_DISCORD):
