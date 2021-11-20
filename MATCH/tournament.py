@@ -52,6 +52,10 @@ class Tournament:
 
     # Prints out the ranking of the given division
     def rankings(self, players, division):
+        if (division - 1) < 0:
+            return "Error", {}
+        division -= 1
+        
         self.__consoleprint(f"Rankings being generated for: {division + 1}")
         score_dict = {}
      
@@ -71,7 +75,7 @@ class Tournament:
 
 
 
-    def final_rankings(self, players, div):
+    def final_rankings(self, players, divisions):
         score = []
         score_dict = {}
         self.__consoleprint("Final rankings")
@@ -80,12 +84,12 @@ class Tournament:
             score.append(0)
             name = player["Name"]
             score_dict[name] = 0
-            for i in range(div):
+            for i in range(divisions):
                 score[idx] += player["Rank"][i]
             score_dict[name] = score[idx]
                 
 
-        count = 10 * div
+        count = 10 * divisions
         position = 1
         message = "FINAL STANDINGS:\n----------------\n"
         
@@ -209,7 +213,7 @@ class Tournament:
             if POW2[r] >= len(players):
                 rounds = r
                 break
-        self.__consoleprint(f"Starting division {division}")
+        self.__consoleprint(f"Starting division {division + 1}")
             
         order = [i for i in range(len(players))]
         random.shuffle(order)
