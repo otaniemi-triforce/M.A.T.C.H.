@@ -123,16 +123,16 @@ class Tournament:
             self.__update_tournament_state("Div", i)
             # Play division i
             if i != 0:
-                time.sleep(RESULT_TIME_DIVISION) #MAGIC NUMBERS YAY!!!! Replace with constant time
+                time.sleep(RESULT_TIME_DIVISION)
             self.play_division(players, i, mugen)
 
         if not self.is_running():
             self.__consoleprint("Tournament aborted")
             return
-                
+        
         self.__update_tournament_state("Div", divisions + 1)
         self.running = 0
-        self.__consoleprint ("finished tournament")
+        self.__consoleprint("finished tournament")
 
 
         
@@ -171,10 +171,10 @@ class Tournament:
                     #    mugen.scan()
                     
                     self.__consoleprint("Inserting characters")
-                    self.__consoleprint("  ...Player 1: " + str(player1["Characters"][division]))
+                    self.__consoleprint(f"  ...Player 1: {player1['Characters'][division]}")
                     mugen.add_character(player1["Characters"][division], mo.PLAYER1)
                     
-                    self.__consoleprint("  ...Player 2: " + str(player2["Characters"][division]))
+                    self.__consoleprint(f"  ...Player 2: {player2['Characters'][division]}")
                     mugen.add_character(player2["Characters"][division], mo.PLAYER2)
 
                     # Command operator to insert characters
@@ -209,7 +209,7 @@ class Tournament:
             if POW2[r] >= len(players):
                 rounds = r
                 break
-        self.__consoleprint("Starting division " + str(division))
+        self.__consoleprint(f"Starting division {division}")
             
         order = [i for i in range(len(players))]
         random.shuffle(order)
@@ -222,19 +222,19 @@ class Tournament:
             for round in range(1, rounds, 1):
                 self.__update_tournament_state("Round", round)
                 self.__update_tournament_state("Order", order)
-                self.__consoleprint("Division round : " + str(round))
+                self.__consoleprint(f"Division round : {round}")
                 # Reverse order every tound to balance the tournament with odd number of players
                 order.reverse()
                 
                 match = 0
                 while(len(order) - 1 > match):
                     time.sleep(0.5)
-                    self.__consoleprint("Division match :" + str(match + 1))
+                    self.__consoleprint(f"Division match : {match + 1}")
                     if len(order) - match > 1:
                         result = self.play_match(players[order[match]], players[order[match + 1]], division, mugen)
                         if result == -1 and not self.is_running():
                             return
-                        self.__consoleprint("Match result: " + str(result) + '.')
+                        self.__consoleprint(f"Match result: {result}.")
                         if result == WINNER1:
                             # Player 2 lost, mark the achieved rank in division to player rank data
                             players[order[match + 1]]["Rank"][division] = round
@@ -247,7 +247,7 @@ class Tournament:
                     match += 1
                     
                 if len(order) == 1: 
-                    self.__consoleprint("Division complete, winner was: " + str(players[order[0]]["Name"]))
+                    self.__consoleprint(f"Division complete, winner was: {players[order[0]]['Name']}")
                     # We have a winner
                     players[order[0]]["Rank"][division] = round + 1
                     ranking.insert(0,order.pop(0))
