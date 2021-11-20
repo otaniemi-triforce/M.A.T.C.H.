@@ -462,12 +462,12 @@ class match_system():
                     
                     # Sanity check, at least one division needs to be completed
                     if self.div > 0:
-                        results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 2)
+                        results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 1)
                         
-                        text = "Division " + str(self.ongoing_div - 1)
+                        text = f"Division {self.ongoing_div - 1}"
                         if (USE_DISCORD):
                             # Send update to Discord
-                            self.ds_client.queue_message(text + " finished." )
+                            self.ds_client.queue_message(f"{text} finished." )
                         
                         # Show division results HTML
                         self.output_results(results_dict, f"{text} results.", RESULT_TIME_DIVISION)
@@ -724,14 +724,14 @@ class match_system():
                     if (USE_DISCORD):
                         # Update Discord presence and show division results:
                         self.ds_client.set_presence(self.tournament_status())
-                    results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 2)
+                    results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 1)
                     
                     # Send update to Discord
                     if (USE_DISCORD):
-                        self.ds_client.queue_message("Division: " + str(self.ongoing_div) + " finished." )
+                        self.ds_client.queue_message(f"Division: {self.ongoing_div} finished." )
                     
-                    # Show division results HTML
-                    title = "Division " + str(self.ongoing_div) + " results."
+                    # Output division results to file
+                    title = f"Division {self.ongoing_div} results."
                     self.output_results(results_dict, title, RESULT_TIME_DIVISION)
                     
                     
