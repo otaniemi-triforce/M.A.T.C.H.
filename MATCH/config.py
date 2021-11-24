@@ -101,6 +101,16 @@ RESULTS_HTML = "results.html"
 RESULTS_TXT = "results.txt"
 INFO_TXT = "info.txt"
 
+# Results TXT structure (in lines or spaces)
+LEFT_PADDING = 6
+TOP_PADDING = 3
+BOTTOM_PADDING = 3
+TITLE_LEFT_PADDING = 18
+WIDTH = 60
+RANK_SPACES = 3
+NAME_SPACES = 30
+POINTS_SPACES = 7
+
 # Results in HTML or txt
 USE_HTML = False
 
