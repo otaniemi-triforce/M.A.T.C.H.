@@ -75,13 +75,13 @@ class MiyakoBotDiscord(commands.Cog):
         if isinstance(error, commands.CommandNotFound):
             return
         if isinstance(error, commands.MissingRequiredArgument):
-            return
+            return               
         raise error
     
     
     @commands.command(aliases=['s'])
     async def status(self, ctx):
-        await ctx.send(self.status_command())
+        await ctx.message.reply(self.status_command())
         
     
     @commands.command(aliases=['newtournament:', 'nt'])
@@ -90,14 +90,18 @@ class MiyakoBotDiscord(commands.Cog):
         #payload = int(payload.split(" ")[1:][0])
         response = self.tournament_command(value)
         if response:
-            await ctx.send(response)
+            await ctx.message.reply(response)
     
         
     @commands.command(aliases=['register:', 'r'])
-    async def register(self, ctx, numbers: str):
-        response = self.register_user(numbers, ctx.message.author.name)
+    async def register(self, ctx):
+        message = ctx.message.content
+        message = message.replace(self.prefix, "")
+        message = message.replace("r ","")
+        message = message.replace("registe","")
+        response = self.register_user(message, ctx.message.author.name)
         if response:
-            await ctx.send(response)
+            await ctx.message.reply(response)
 
 
     # Client on_ready operates as watchdog for the system and executes tournaments
@@ -212,23 +216,21 @@ class MiyakoBotDiscord(commands.Cog):
                 
                 # Check what registration contained
             try:
-                print(f"Payload: {data}")
                 for i in data.split(","):
-                    print(f"Payload part: {i}")
-                    value = self.matchsys.offset_char(int(i), True)
+                    i = i.strip()
                     if int(i) < 0:
                         chars = []
-                        response = DC_REG_ERR_NEG_ID
+                        return DC_REG_ERR_NEG_ID
                         break
                     if int(i) > int(self.matchsys.get_max_ID()):
                         chars = []
-                        response = self.var_insert(DC_REG_ERR_MAX_ID, self.matchsys.get_max_ID())
+                        return self.var_insert(DC_REG_ERR_MAX_ID, self.matchsys.get_max_ID())
                         break
+                    value = self.matchsys.offset_char(int(i), True)
                     realchars.append(int(i))
                     chars.append(value)
             # Conversion to int failed, syntax error
             except ValueError:
-                self.__consoleprint("Message did not contain numerical data")
                 return DC_REG_ERR_SYNTAX
                 
             
@@ -265,35 +267,5 @@ class MiyakoBotDiscord(commands.Cog):
                     response = DC_REG_ERR_DUPLICATE
         return response
 
-
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        '''Message parsing for mentions.
-        '''
-        # Remove own messages
-        if message.author == self.bot.user:
-            return
-        # If mentioned in message, parse
-        elif self.bot.user.mentioned_in(message):
-            response = ""
-            print(f"CONTENT WAS: {message.content}")
-            payload = message.content.split(">")[1]
-            
-            if payload == " status": # status requested
-                response = self.status_command()
-
-            elif payload.startswith(" new tournament:"): # New tournament requested
-                divisions = payload.split(":")[1:][0]
-                response = self.tournament_command(divisions)
-
-            elif payload.startswith(" register:"): # Registration received
-                numbers = "".join(payload.split(":")[1:])
-                response = self.register_user(numbers, message.author.name)
-            else:
-                return
-            if response:
-                await message.channel.send(response)
-        #await self.bot.process_commands(message)
-        return
 
 
