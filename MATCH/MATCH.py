@@ -131,7 +131,13 @@ class match_system():
             self.show_html_results(results_dict, title, time)
         else:
             #just write file
-            scores = f"\n{'':2}{title}\n -------------------------------------- \n"
+            scores = ""
+            for i in range(TOP_PADDING):
+                scores += "\n"
+            scores += f"\n{'':{TITLE_LEFT_PADDING}}{title}\n\n"
+            for i in range(WIDTH):
+                scores += "-"
+            scores += "\n"
             scores += self.__create_scoretable(results_dict)
             self.filewriter.queue(scores, RESULT_TIME_DIVISION, RESULTS_TXT)
  
@@ -189,10 +195,10 @@ class match_system():
         for i, player in enumerate(rankings):
             if i > RANKING_LIST_MAX:
                 break
-            scoretable += f"{'':4}{(i + 1):3}. {player[0]:20} {player[1]:3}{'':4}\n"
+            scoretable += f"{'':{LEFT_PADDING}}{(i + 1):{RANK_SPACES}}. {player[0]:{NAME_SPACES}} {player[1]:{POINTS_SPACES}}{'':4}\n"
             size = i
         # Add padding to text to keep the number of rows constant
-        while(size < RANKING_LIST_MAX + 2):
+        while(size < RANKING_LIST_MAX + BOTTOM_PADDING):
             scoretable += "\n"
             size += 1
         return scoretable
@@ -281,12 +287,10 @@ class match_system():
     # Check if player is already registered
     
     def check_player(self, name):
-        print(f"Checking {name}")
         if NO_DUPLICATES:
             for player in self.players:
                 if player["Name"] == name:
                     return True
-        print(f"Checking {name}...returning false")
         return False
         
 
@@ -301,7 +305,9 @@ class match_system():
             self.lock.release()
             return badchars
         for char in chars:
-            if char in self.reserved_characters:
+            if chars.count(char) > 1:
+                badchars.append(char)
+            elif char in self.reserved_characters:
                 badchars.append(char)
         if not badchars:
             self.reserved_characters += chars
@@ -410,18 +416,18 @@ class match_system():
                     self.division_complete = True
                 fight = self.toursys.get_state("Fight")
                 if fight:
-                    state_fight =  fight[0][0] + " (" + str(self.offset_char(fight[0][1], False)) + ") VS " 
-                    state_fight += fight[1][0] + " (" + str(self.offset_char(fight[1][1], False)) + ")"
+                    state_fight =  f"{fight[0][0]} ({self.offset_char(fight[0][1], False)}) VS " 
+                    state_fight += f"{fight[1][0]} ({self.offset_char(fight[1][1], False)})"
                     self.filewriter.queue(f"Current match: {state_fight}", 0, INFO_TXT)
                 else:
                     state_fight = "-"
-                new_presence = "Running tournament. Match: " + state_fight + " -- Division: " + str(state_div + 1) + " Round : " + str(state_round)
+                new_presence = "Running tournament. Match: {state_fight}0 -- Division: {(state_div + 1)} Round : {state_round})"
 
             else:
                 if self.get_status() == IDLE:
                     new_presence = "Idle"
                 elif self.get_status() == REGISTRATION:
-                    new_presence = "Registration open for " + str(self.div) + " division tournament. Current entries: " + str(len(self.players))
+                    new_presence = "Registration open for {self.div} division tournament. Current entries: {len(self.players)}"
                 elif self.get_status == RESET:
                     new_presence = "Match reset...stand by"
                 else:
@@ -645,7 +651,7 @@ class match_system():
                 if self.get_status() == REGISTRATION:
                     self.filewriter.queue("Registration in progress", 0, INFO_TXT)                    
                     # Send message to clients. Twitch is needs the message in two parts
-                    message = "Registration is now open for tournament with " + str(self.div) + " divisions.\nCharacter ID's 0-" + self.get_max_ID() + " are accepted.\n"
+                    message = f"Registration is now open for tournament with {self.div} divisions.\nCharacter ID's 0-{self.get_max_ID()} are accepted.\n"
                     ds_message = "" + message
                     if (USE_TWITCH):
                         # Send part 1 to Twitch
