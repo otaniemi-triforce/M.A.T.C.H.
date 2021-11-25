@@ -46,7 +46,7 @@ class match_system():
         self.players = []
         self.divisions = 0
         self.current_division = 1
-        self.last_division = 1
+        self.last_division = 0
         self.offset = 0
         self.offset_counter = OFFSET_COUNT
         self.lock = threading.Lock()
@@ -398,7 +398,8 @@ class match_system():
         
         # Reset old tournament, start new
         self.current_division = 1
-        self.last_division = 1
+        self.last_division = 0
+        self.division_complete = False
         self.players = []
         self.divisions = divisions
         self.reserved_characters = []
