@@ -629,7 +629,7 @@ class match_system():
         if (USE_DISCORD):
             loop.create_task(bot.start(DISCORD_TOKEN))
         if (USE_TWITCH):
-            loop.create_task(self.twch_client.start())
+            loop.create_task(self.twch_client.run())
         if (USE_TWITCH or USE_DISCORD):
             loop.run_forever()
     
