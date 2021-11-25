@@ -44,8 +44,9 @@ class match_system():
         
         self.reserved_characters = []
         self.players = []
-        self.div = 0
-        self.ongoing_div = 1
+        self.divisions = 0
+        self.current_division = 1
+        self.last_division = 1
         self.offset = 0
         self.offset_counter = OFFSET_COUNT
         self.lock = threading.Lock()
@@ -104,7 +105,8 @@ class match_system():
         """Update/create HTML file.
         Text is the content, time is the automatic refresh time for the page
         Idea here is that the page can be empty with minimal refresh time making it responsive to updates
-        When needed, the content can be updated and shown for refresh time."""
+        When needed, the content can be updated and shown for refresh time.
+        """
         
         html = f'<head><meta http-equiv="refresh" content={time}>'
         html += f'<link rel="stylesheet" type="text/css" href="style.css">'
@@ -147,18 +149,20 @@ class match_system():
     ########################
 
 
-    # Write scoreboard to file
 
     def __write_scorefile(self, data, file):
+        '''Write scoreboard to file'''
+        
         f = open(file, "wt")
         for key in iter(data):
             f.write(key + "," + str(data[key]) + ",\n")
         f.close()
 
 
-    # Read scoreboard from file
 
     def __read_scorefile(self, file):
+        '''Read scoreboard from file'''
+        
         try:
             f = open(file, "r")
             data = {}
@@ -172,9 +176,10 @@ class match_system():
         return data
 
 
-    # Add current scores to the scoreboard
 
     def __update_scoreboard(self, players):
+        '''Adds current scores to the scoreboard'''
+        
         for player in players:
             score = 0
             for rank in player["Rank"]:
@@ -185,9 +190,10 @@ class match_system():
                 self.scoreboard[player["Name"]] = score
 
 
-    # Generates HTML table with scores from dictionary {"Name": score}
 
     def __create_scoretable(self, dict):
+        ''' Generates HTML table with scores from dictionary {"Name": score}'''
+        
         scoretable = ""
         rankings = [k for k in sorted(dict.items(), key=lambda item: item[1], reverse=True)]
         # Limit the table size to RANKING_LIST_MAX
@@ -204,9 +210,10 @@ class match_system():
         return scoretable
 
         
-    # Generates HTML table with scores from dictionary {"Name": score}
 
     def __create_html_scoretable(self, dict):
+        '''Generates HTML table with scores from dictionary {"Name": score}'''
+        
         table = "<table>"
         rankings = [k for k in sorted(dict.items(), key=lambda item: item[1], reverse=True)]
         # Limit the table size to RANKING_LIST_MAX
@@ -218,9 +225,12 @@ class match_system():
         return table
 
 
-    # Create results HTML for the finished division. Display the page for HOLDTIME_SHORT.
     
     def show_html_results(self, results_dict, title, display_time):
+        '''
+        Create results HTML for the finished division. Display the page for HOLDTIME_SHORT.
+        '''
+        
         # Right, time to create and show the results with some HTML trickery
         # First create the page structure. Put the content in div to enable different style
         
@@ -254,7 +264,6 @@ class match_system():
     def __timers_active(self):
         return self.timers
 
-    # Return time alert
     def time_warning(self, i):
         return str(i) + " seconds to tournament start."
 
@@ -265,28 +274,23 @@ class match_system():
     #################################
 
 
-    # Queue registration messages to be sent
-
     def queue_register_message(self, message):
         if message:
             self.register_messages.append(str(message))
 
 
-    # Return current status of the system
-
     def get_status(self):
         return self.state
 
 
-    # Return current tournament division count
-
     def get_divisions(self):
-        return self.div
+        return self.divisions
 
 
-    # Check if player is already registered
     
     def check_player(self, name):
+        '''Check if player is already registered'''
+        
         if NO_DUPLICATES:
             for player in self.players:
                 if player["Name"] == name:
@@ -295,10 +299,12 @@ class match_system():
         
 
                 
-    # Register characters, return list of characters that failed
-    # Return empty list if success
 
     def register_chars(self, chars):
+        '''Register characters, return list of characters that failed
+        Return empty list if success
+        '''
+        
         badchars = []
         self.lock.acquire()
         if self.state != REGISTRATION:
@@ -316,9 +322,10 @@ class match_system():
 
 
 
-    # Remove given characters that have been previously selected
     
     def unregister_chars(self, chars):
+        '''Remove given characters that have been previously selected'''
+        
         self.lock.acquire()
         for char in chars:
             if char in self.reserved_characters:
@@ -327,9 +334,10 @@ class match_system():
 
 
 
-    # Add new player, check for duplicate 
 
     def add_player(self, player):
+        '''Add new player, check for duplicate'''
+        
         self.lock.acquire()
         # Ensure that state has not been changed by other threads
         if self.get_status() != REGISTRATION:
@@ -350,16 +358,18 @@ class match_system():
 
 
 
-    # Create new player with characters chars, raise IndexError if any character is reserved 
-    # PLAYER data contains: 
-    # User name, Achieved rank in each division, Character id's for Each division
-    # player == {"Name" : "Example", "Rank" : [0,0,0], "Characters" : [1,2,3]}
 
     def new_player(self, name, chars):
-        if not len(chars) == self.div:
+        '''Create new player with characters chars, raise IndexError if any character is reserved 
+        PLAYER data contains: 
+        User name, Achieved rank in each division, Character id's for Each division
+        player == {"Name" : "Example", "Rank" : [0,0,0], "Characters" : [1,2,3]}
+        '''
+        
+        if not len(chars) == self.divisions:
             raise IndexError('Character mismatch')
             return {}
-        return {"Name":name, "Rank": [0 for i in range(self.div)], "Characters": chars}
+        return {"Name":name, "Rank": [0 for i in range(self.divisions)], "Characters": chars}
         
 
 
@@ -367,9 +377,10 @@ class match_system():
     #        TOURNAMENT LOGIC        #
     ##################################
         
-    # Create new tournament, this will clear any previous tournament data
     
     def new_tournament(self, divisions):
+        '''Create new tournament, this will clear any previous tournament data'''
+        
         # Lock tournament data
         self.lock.acquire()
         # Check that the situation has not been changed by other threads
@@ -386,9 +397,10 @@ class match_system():
             return False
         
         # Reset old tournament, start new
-        self.ongoing_div = 1
+        self.current_division = 1
+        self.last_division = 1
         self.players = []
-        self.div = divisions
+        self.divisions = divisions
         self.reserved_characters = []
         self.state = REGISTRATION
         
@@ -403,43 +415,53 @@ class match_system():
 
 
 
-    # Get the current tournament status from the tournament subsystem
-    # Updates the info text and lets the system know that division has finished
-    # Returns a presence that can be forwarded to discord
+
+    def division_update(self, division, finished):
+        '''Used to update the division status for the MATCH. 
+        Coordinates the results printing and division tracking 
+        '''
+        if finished:
+            self.division_complete = True
+            self.last_division = division
+        else:
+            self.current_division == division
+            
+
+    def tournament_update(self):
+        '''Get the current tournament status from the tournament subsystem and updates the info text accordingly.
+        Returns a presence that can be forwarded to discord
+        '''
     
-    def tournament_status(self):
-            if self.toursys.is_running() and self.get_status() == RUNNING:
-                state_round = self.toursys.get_state("Round")
-                state_div = self.toursys.get_state("Div")
-                if state_div == self.ongoing_div:
-                    self.ongoing_div = state_div + 1
-                    self.division_complete = True
-                fight = self.toursys.get_state("Fight")
-                if fight:
-                    state_fight =  f"{fight[0][0]} ({self.offset_char(fight[0][1], False)}) VS " 
-                    state_fight += f"{fight[1][0]} ({self.offset_char(fight[1][1], False)})"
-                    self.filewriter.queue(f"Current match: {state_fight}", 0, INFO_TXT)
-                else:
-                    state_fight = "-"
-                new_presence = "Running tournament. Match: {state_fight}0 -- Division: {(state_div + 1)} Round : {state_round})"
-
+        if self.get_status() == RUNNING:
+            state_round = self.toursys.get_state("Round")
+            state_div = self.toursys.get_state("Div")
+            fight = self.toursys.get_state("Fight")
+            if fight:
+                state_fight =  f"{fight[0][0]} ({self.offset_char(fight[0][1], False)}) VS " 
+                state_fight += f"{fight[1][0]} ({self.offset_char(fight[1][1], False)})"
+                self.filewriter.queue(f"Current match: {state_fight}", 0, INFO_TXT)
             else:
-                if self.get_status() == IDLE:
-                    new_presence = "Idle"
-                elif self.get_status() == REGISTRATION:
-                    new_presence = "Registration open for {self.div} division tournament. Current entries: {len(self.players)}"
-                elif self.get_status == RESET:
-                    new_presence = "Match reset...stand by"
-                else:
-                    new_presence = "Tournament ended"
-            return new_presence
+                state_fight = "-"
+            new_presence = "Running tournament. Match: {state_fight}0 -- Division: {(state_div + 1)} Round : {state_round})"
+
+        else:
+            if self.get_status() == IDLE:
+                new_presence = "Idle"
+            elif self.get_status() == REGISTRATION:
+                new_presence = "Registration open for {self.divisions} division tournament. Current entries: {len(self.players)}"
+            elif self.get_status == RESET:
+                new_presence = "Match reset...stand by"
+            else:
+                new_presence = "Tournament ended"
+        return new_presence
 
 
-    # Start and run tournament
 
     def run_tournament(self):
+        '''Create tournament thread and run tournament'''
+        
         # Create new tournament thread
-        tour_t = threading.Thread(target=self.toursys.run_tournament , args=(self.players, self.div, self.mugen))
+        tour_t = threading.Thread(target=self.toursys.run_tournament , args=(self.players, self.divisions, self.mugen))
         
         self.console_print(MSGNAME,"Tournament controller started")
         tour_t.start()
@@ -455,7 +477,7 @@ class match_system():
             timer = 0
             while self.toursys.is_running():
                 # Check status
-                status = self.tournament_status()
+                status = self.tournament_update()
                 # Send new presence data to Discord bot and update info texts
                 if (USE_DISCORD):
                     if timer % 5 == 0:
@@ -466,17 +488,15 @@ class match_system():
                 if self.division_complete:
                     self.division_complete = False
                     
-                    # Sanity check, at least one division needs to be completed
-                    if self.div > 0:
-                        results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 1)
-                        
-                        text = f"Division {self.ongoing_div - 1}"
-                        if (USE_DISCORD):
-                            # Send update to Discord
-                            self.ds_client.queue_message(f"{text} finished." )
-                        
-                        # Show division results HTML
-                        self.output_results(results_dict, f"{text} results.", RESULT_TIME_DIVISION)
+                    results, results_dict = self.toursys.rankings(self.players, self.last_division)
+                    
+                    text = f"Division {self.last_division}"
+                    if (USE_DISCORD):
+                        # Send update to Discord
+                        self.ds_client.queue_message(f"{text} finished." )
+                    
+                    # Show division results HTML
+                    self.output_results(results_dict, f"{text} results.", RESULT_TIME_DIVISION)
                         
                 # Timer reset
                 if status != self.status:
@@ -504,7 +524,8 @@ class match_system():
 
 
 
-    def stop_tournament_registration(self):    
+    def stop_tournament_registration(self):
+    
         # Stop only if in registration or timers are running
         if not (self.state == REGISTRATION or self.__timers_active()):
             return "No tournament registration ongoing"
@@ -614,16 +635,15 @@ class match_system():
     
 
     
-    # Main program logic
-    #
-    # 1. Idle state/Registration/Timers
-    # 2. Tournament start
-    # 3. Tournament loop
-    #    - Results
-    # 4. Watchdog
-    #
-    
     def main_loop(self):
+        '''Main program logic. 
+        In short:
+        1. Idle state/Registration/Timers
+        2. Tournament start
+        3. Tournament loop
+          - Display results when needed
+        4. Watchdog
+        '''
     
         # INIT
         self.toursys = tournament.Tournament(self)
@@ -651,7 +671,7 @@ class match_system():
                 if self.get_status() == REGISTRATION:
                     self.filewriter.queue("Registration in progress", 0, INFO_TXT)                    
                     # Send message to clients. Twitch is needs the message in two parts
-                    message = f"Registration is now open for tournament with {self.div} divisions.\nCharacter ID's 0-{self.get_max_ID()} are accepted.\n"
+                    message = f"Registration is now open for tournament with {self.divisions} divisions.\nCharacter ID's 0-{self.get_max_ID()} are accepted.\n"
                     ds_message = "" + message
                     if (USE_TWITCH):
                         # Send part 1 to Twitch
@@ -674,7 +694,7 @@ class match_system():
             if (USE_DISCORD):
                 # Update the discord presence every 5 seconds
                 if system_timer % 5 == 0:
-                    self.ds_client.set_presence(self.tournament_status())
+                    self.ds_client.set_presence(self.tournament_update())
                 
             # If any queued registrations exists, send them to all clients
             while self.register_messages:
@@ -721,7 +741,6 @@ class match_system():
                     self.state = FINISHING
                     self.lock.release()
                     
-                    
                     # RESULTS
                     
                     # Clear the info text
@@ -729,15 +748,15 @@ class match_system():
                     
                     if (USE_DISCORD):
                         # Update Discord presence and show division results:
-                        self.ds_client.set_presence(self.tournament_status())
-                    results, results_dict = self.toursys.rankings(self.players, self.ongoing_div - 1)
+                        self.ds_client.set_presence(self.tournament_update())
+                    results, results_dict = self.toursys.rankings(self.players, self.last_division)
                     
                     # Send update to Discord
                     if (USE_DISCORD):
-                        self.ds_client.queue_message(f"Division: {self.ongoing_div} finished." )
+                        self.ds_client.queue_message(f"Division: {self.last_division} finished." )
                     
                     # Output division results to file
-                    title = f"Division {self.ongoing_div} results."
+                    title = f"Division {self.last_division} results."
                     self.output_results(results_dict, title, RESULT_TIME_DIVISION)
                     
                     
@@ -749,7 +768,7 @@ class match_system():
                     if (USE_DISCORD):
                         self.ds_client.queue_pic(PICS[random.randint(0,len(PICS) - 1)], "Ah that was nice.")
                     # Create results
-                    results, results_dict = self.toursys.final_rankings(self.players, self.div)
+                    results, results_dict = self.toursys.final_rankings(self.players, self.divisions)
                     
                     if (USE_DISCORD):
                         self.ds_client.queue_message(results)
@@ -808,9 +827,10 @@ class match_system():
 
 
 
-    # Main operator console loop
         
     def operator_loop(self):
+        '''Loop for operator console'''
+        
         while(True):
             input()
             
