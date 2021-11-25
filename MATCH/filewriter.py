@@ -24,7 +24,7 @@ class FileWriter(threading.Thread):
                 while not self.buffer:
                     self.condition.wait()
                 if self.buffer:
-                    task = self.buffer.pop()
+                    task = self.buffer.pop(0)
                     duration = task[TIME]
                     filename = task[FILENAME]
                     ready = True
