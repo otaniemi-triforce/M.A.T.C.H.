@@ -12,6 +12,9 @@ POW2 = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
 MAX_ROUNDS = 32 # Maximum number of tournament rounds. 32 is massive tournament
 MSGNAME = "Tournament control"
 
+ONGOING = False
+FINISHED = True
+
 
 class Tournament:
     def __init__(self, matchsys):
@@ -120,11 +123,13 @@ class Tournament:
         self.__update_tournament_state("Match", 1)
         self.__update_tournament_state("Fight", "")
         self.__update_tournament_state("Order", [])
+        
         for i in range(divisions):
             if not self.is_running():
                 break
             # Update state
             self.__update_tournament_state("Div", i)
+            
             # Play division i
             if i != 0:
                 time.sleep(RESULT_TIME_DIVISION)
@@ -213,11 +218,14 @@ class Tournament:
             if POW2[r] >= len(players):
                 rounds = r
                 break
-        self.__consoleprint(f"Starting division {division + 1}")
             
         order = [i for i in range(len(players))]
         random.shuffle(order)
         ranking = []
+        
+        #Preliminaries done, update system and start playing
+        self.__consoleprint(f"Starting division {division + 1}")
+        self.matchsys.division_update(division + 1, ONGOING)
         
         #Play division
         while(order):
@@ -255,5 +263,7 @@ class Tournament:
                     # We have a winner
                     players[order[0]]["Rank"][division] = round + 1
                     ranking.insert(0,order.pop(0))
-                   
+        
+        # Finished, update match division data.
+        self.matchsys.division_update(division + 1, FINISHED)
         return ranking
