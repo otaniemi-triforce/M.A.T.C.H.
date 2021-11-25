@@ -1,6 +1,5 @@
 from twitchio.ext import commands
-import threading
-import asyncio, time
+import asyncio
 from config import *
 
 DELAY = 30
@@ -9,8 +8,11 @@ MSGNAME = "Miyako-Twitch"
 class MiyakoBotTwitch(commands.Bot):
 
     def __init__(self, matchsys):
-        super().__init__(irc_token=TWITCH_IRC_TOKEN, client_id=TWITCH_CLIENT_ID, nick=TWITCH_NICK, prefix=TWITCH_PREFIX,
-                         initial_channels=[TWITCH_CHANNEL])
+        super().__init__(token=TWITCH_IRC_TOKEN,
+            client_id=TWITCH_CLIENT_ID,
+            nick=TWITCH_NICK,
+            prefix='#',
+            initial_channels=[TWITCH_CHANNEL])   
         self.matchsys = matchsys
         self.message_queue = []
         
@@ -18,12 +20,13 @@ class MiyakoBotTwitch(commands.Bot):
     def __consoleprint(self, msg):
         self.matchsys.console_print(MSGNAME, msg)
         
+        
     def queue_message(self, message):
         self.message_queue.append(str(message))
 
+
     # Events don't need decorators when subclassed
     async def event_ready(self):
-        threading.current_thread()
         self.__consoleprint(f'Ready | {self.nick}')
         delay = 0
         while(True):
@@ -34,29 +37,33 @@ class MiyakoBotTwitch(commands.Bot):
             while self.message_queue:
                 self.__consoleprint("Sending message.")
                 await self.get_channel(TWITCH_CHANNEL).send(self.message_queue.pop(0))
-                time.sleep(1.5)
+                await asyncio.sleep(1.5)
             delay += 1
 
+
     async def event_message(self, message):
-        if message.author.name == self.nick:
+        """Message/Command handling. Most of the magic happens here"""
+        
+        if not message.author:
             return
         response = ""
         data = message.content.split(":")
-        if data[0].lower() == "!new tournament":
-            try:
+        command = data[0].strip().lower()
+        if command == "!new tournament" or command == "!nt":
+            if len(data) == 2:
                 value = int(data[1])
-                self.__consoleprint("Registering new tournament: " + str(value))
-                if value > 0:
+                try:
+                    assert value > 0
+                except AssertionError:
+                    # User gave a silly value for divisions...
+                    response = "Number of divisions must be positive number"
+                else:
                     if self.matchsys.get_status() == IDLE:
+                        self.__consoleprint("Registering new tournament: " + str(value))
                         offset_change = self.matchsys.new_tournament(value)
-                        
-            except ValueError:
-                response = "Correct syntax is 'new tournament: <divisions>', dummy"
-            except AssertionError:
-                # User gave a negative value for divisions...
-                response = "Ha ha, negative amount of divisions...boy, you're just as keen as I am about this paperwork."
             await message.channel.send(response)
-        elif data[0].lower() == "!register":
+            
+        elif command == "!register" or command == "!r":
             if self.matchsys.get_status() == RUNNING:
                 response = "Tournament has already started."
             elif self.matchsys.get_status() != REGISTRATION:
@@ -74,11 +81,11 @@ class MiyakoBotTwitch(commands.Bot):
                         if int(i) < 0:
                             chars = []
                             response = "There ain't no contestants with negative numbers, sheesh..."
-                            break
+                            return
                         if int(i) > int(self.matchsys.get_max_ID()):
                             chars = []
                             await message.channel.send("Highest selectable id is " + self.matchsys.get_max_ID())
-                            break
+                            return
                         realchars.append(int(i))
                         chars.append(value)
                     if not self.matchsys.check_player(message.author.name and NO_DUPLICATES):
@@ -117,7 +124,7 @@ class MiyakoBotTwitch(commands.Bot):
                     response = "You need to give me exactly: " + str(self.matchsys.get_divisions()) + " characters. One for each division"
             if response:
                 await message.channel.send(response)
-        elif data[0].lower() == "!status":
+        elif command == "!status" or command == "!s":
             status = self.matchsys.get_status()
             if status == IDLE:
                 response = "Nothing happening, ready to go."
